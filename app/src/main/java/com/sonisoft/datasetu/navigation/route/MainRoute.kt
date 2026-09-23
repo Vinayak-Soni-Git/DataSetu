@@ -6,6 +6,10 @@ sealed class MainRoute(
 
     data object Home : MainRoute("home")
 
+    data object Storage : MainRoute("storage")
+
+    data object Profile : MainRoute("profile")
+
     data object Discovery : MainRoute("discovery")
 
     data object Send : MainRoute("send")

@@ -1,0 +1,31 @@
+package com.sonisoft.datasetu.feature.onboarding
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.hilt.navigation.compose.hiltViewModel
+
+@Composable
+fun OnboardingRoute(
+    onNavigateToSignup: () -> Unit,
+    viewModel: OnboardingViewModel = hiltViewModel()
+) {
+
+    LaunchedEffect(Unit) {
+
+        viewModel.events.collect { event ->
+
+            when (event) {
+
+                OnboardingEvent.NavigateToSignup -> {
+                    onNavigateToSignup()
+                }
+            }
+        }
+    }
+
+    OnboardingScreen(
+        onGetStarted = {
+            viewModel.onGetStartedClicked()
+        }
+    )
+}

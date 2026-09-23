@@ -4,18 +4,42 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.sonisoft.datasetu.feature.discovery.DiscoveryScreen
 import com.sonisoft.datasetu.feature.history.HistoryScreen
-import com.sonisoft.datasetu.feature.home.HomeScreen
+import com.sonisoft.datasetu.feature.home.HomeRoute
+import com.sonisoft.datasetu.feature.profile.ProfileRoute
 import com.sonisoft.datasetu.feature.receive.ReceiveScreen
 import com.sonisoft.datasetu.feature.send.SendScreen
 import com.sonisoft.datasetu.feature.settings.SettingsScreen
+import com.sonisoft.datasetu.feature.storage.StorageScreen
 import com.sonisoft.datasetu.feature.transfer.TransferScreen
+import com.sonisoft.datasetu.navigation.AppNavigator
 import com.sonisoft.datasetu.navigation.route.MainRoute
 
-fun NavGraphBuilder.mainGraph() {
+fun NavGraphBuilder.mainGraph(navigator: AppNavigator) {
     composable(
         route = MainRoute.Home.route
     ) {
-        HomeScreen()
+        HomeRoute(
+            onNavigateToProfile = { navigator.navigateBottomTab(MainRoute.Profile.route) },
+            onNavigateToSend = { navigator.navigateToSend() },
+            onNavigateToReceive = { navigator.navigateToReceive() },
+            onNavigateToDiscovery = { navigator.navigateToDiscovery() },
+            onNavigateToHistory = { navigator.navigateToHistory() }
+        )
+    }
+    
+    composable(
+        route = MainRoute.Storage.route
+    ) {
+        StorageScreen()
+    }
+
+    composable(
+        route = MainRoute.Profile.route
+    ) {
+        ProfileRoute(
+            onNavigateBack = { navigator.popBack() },
+            onNavigateToLogin = { navigator.navigateToLogin() }
+        )
     }
 
     composable(
