@@ -1,5 +1,6 @@
 package com.sonisoft.datasetu.navigation
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.padding
@@ -19,6 +20,7 @@ import com.sonisoft.datasetu.navigation.graph.onboardingGraph
 import com.sonisoft.datasetu.navigation.route.OnboardingRoute
 import com.sonisoft.datasetu.navigation.route.MainRoute
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun AppNavGraph() {
 
@@ -31,7 +33,8 @@ fun AppNavGraph() {
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
-    val bottomBarRoutes = listOf(MainRoute.Home.route, MainRoute.Storage.route, MainRoute.Profile.route)
+    val bottomBarRoutes =
+        listOf(MainRoute.Home.route, MainRoute.Storage.route, MainRoute.Profile.route)
     val isBottomBarVisible = currentRoute in bottomBarRoutes
 
     Scaffold(
@@ -43,11 +46,10 @@ fun AppNavGraph() {
                 )
             }
         }
-    ) { paddingValues ->
+    ) {
         NavHost(
             navController = navController,
             startDestination = OnboardingRoute.Splash.route,
-            modifier = Modifier.padding(paddingValues),
             enterTransition = {
                 slideIntoContainer(
                     AnimatedContentTransitionScope.SlideDirection.Left,

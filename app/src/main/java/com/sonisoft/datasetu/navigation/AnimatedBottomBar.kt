@@ -55,7 +55,7 @@ fun AnimatedBottomBar(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 16.dp),
-        shape = RoundedCornerShape(24.dp),
+        shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 8.dp,
         shadowElevation = 8.dp

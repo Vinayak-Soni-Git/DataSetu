@@ -45,7 +45,7 @@ fun SplashScreen(
             visibleCharacters = index + 1
         }
 
-        delay(2000.milliseconds)
+        delay(1000.milliseconds)
 
         onSplashFinished()
     }
