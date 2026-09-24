@@ -88,6 +88,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
 
     implementation("com.airbnb.android:lottie-compose:6.7.1")
+    implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("androidx.datastore:datastore-preferences:1.2.1")
 
     testImplementation(libs.junit)

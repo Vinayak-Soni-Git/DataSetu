@@ -1,5 +1,6 @@
 package com.sonisoft.datasetu.navigation
 
+import android.os.Environment
 import androidx.navigation.NavHostController
 import com.sonisoft.datasetu.navigation.route.AuthRoute
 import com.sonisoft.datasetu.navigation.route.MainRoute
@@ -36,7 +37,13 @@ class AppNavigator(
     }
 
     fun navigateToHome() {
-        navController.navigate(MainRoute.Home.route) {
+        val destination = if (Environment.isExternalStorageManager()) {
+            MainRoute.Home.route
+        } else {
+            MainRoute.Permission.route
+        }
+
+        navController.navigate(destination) {
             popUpTo(navController.graph.id) {
                 inclusive = true
             }

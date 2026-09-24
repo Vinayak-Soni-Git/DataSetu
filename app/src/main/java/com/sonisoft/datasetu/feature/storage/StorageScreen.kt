@@ -3,13 +3,10 @@ package com.sonisoft.datasetu.feature.storage
 import android.text.format.Formatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AudioFile
-import androidx.compose.material.icons.rounded.Folder
-import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.VideoFile
-import androidx.compose.material.icons.rounded.InsertDriveFile
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -18,186 +15,214 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import com.sonisoft.datasetu.domain.model.StorageCategory
+import com.sonisoft.datasetu.domain.model.StorageCategoryInfo
 
 @Composable
 fun StorageScreen(
+    onNavigateToCategory: (String) -> Unit,
     viewModel: StorageViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 24.dp)
-            .padding(top = 48.dp)
+            .padding(horizontal = 24.dp),
+        contentPadding = PaddingValues(top = 48.dp, bottom = 32.dp)
     ) {
-        Text(
-            text = "Storage",
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
+        item {
+            Text(
+                text = "Storage",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         if (uiState.isLoading && uiState.storageOverview == null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
             }
         } else if (uiState.storageOverview != null) {
             val overview = uiState.storageOverview!!
-            
-            // Storage Usage Card
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp)
+
+            item {
+                // Storage Usage Card
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
+                    Column(
+                        modifier = Modifier.padding(24.dp)
                     ) {
-                        Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Used Space",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = Formatter.formatFileSize(
+                                        context,
+                                        overview.usedSpaceBytes
+                                    ),
+                                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
                             Text(
-                                text = "Used Space",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = Formatter.formatFileSize(context, overview.usedSpaceBytes),
-                                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
+                                text = "${Formatter.formatFileSize(context, overview.totalSpaceBytes)} Total",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
                         }
-                        Text(
-                            text = "${Formatter.formatFileSize(context, overview.totalSpaceBytes)} Total",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        SegmentedProgressBar(
+                            categories = overview.categories,
+                            totalSpace = overview.totalSpaceBytes,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(MaterialTheme.shapes.small)
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    LinearProgressIndicator(
-                        progress = { 
-                            if (overview.totalSpaceBytes > 0) 
-                                (overview.usedSpaceBytes.toFloat() / overview.totalSpaceBytes.toFloat()) 
-                            else 0f 
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(MaterialTheme.shapes.small),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-                    )
                 }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Text(
+                    text = "Breakdown",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            // Sort categories by size descending
+            val sortedCategories = overview.categories.sortedByDescending { it.sizeBytes }
 
-            Text(
-                text = "Categories",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Map categories safely
-            val images = overview.categories.find { it.category == StorageCategory.IMAGES }?.sizeBytes ?: 0L
-            val videos = overview.categories.find { it.category == StorageCategory.VIDEOS }?.sizeBytes ?: 0L
-            val audio = overview.categories.find { it.category == StorageCategory.AUDIO }?.sizeBytes ?: 0L
-            val docs = overview.categories.find { it.category == StorageCategory.DOCUMENTS }?.sizeBytes ?: 0L
-            val others = overview.categories.find { it.category == StorageCategory.OTHER }?.sizeBytes ?: 0L
-
-            // Categories Grid
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                StorageCategoryCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Images",
-                    size = Formatter.formatFileSize(context, images),
-                    icon = Icons.Rounded.Image,
-                    color = Color(0xFF4CAF50)
+            items(sortedCategories) { categoryInfo ->
+                StorageCategoryListItem(
+                    info = categoryInfo,
+                    totalUsedSpace = overview.usedSpaceBytes,
+                    onClick = { onNavigateToCategory(categoryInfo.category.name) }
                 )
-                StorageCategoryCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Videos",
-                    size = Formatter.formatFileSize(context, videos),
-                    icon = Icons.Rounded.VideoFile,
-                    color = Color(0xFF2196F3)
-                )
+                Spacer(modifier = Modifier.height(12.dp))
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(16.dp))
+fun getCategoryColor(category: StorageCategory): Color {
+    return when (category) {
+        StorageCategory.IMAGES -> Color(0xFF4CAF50)
+        StorageCategory.VIDEOS -> Color(0xFF2196F3)
+        StorageCategory.AUDIO -> Color(0xFFFF9800)
+        StorageCategory.DOCUMENTS -> Color(0xFF9C27B0)
+        StorageCategory.APPS -> Color(0xFF00BCD4)
+        StorageCategory.ARCHIVES -> Color(0xFF795548)
+        StorageCategory.OTHER -> Color(0xFF607D8B)
+        StorageCategory.SYSTEM -> Color(0xFFE91E63)
+    }
+}
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                StorageCategoryCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Audio",
-                    size = Formatter.formatFileSize(context, audio),
-                    icon = Icons.Rounded.AudioFile,
-                    color = Color(0xFFFF9800)
-                )
-                StorageCategoryCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Documents",
-                    size = Formatter.formatFileSize(context, docs),
-                    icon = Icons.Rounded.Folder,
-                    color = Color(0xFF9C27B0)
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
+@Composable
+fun SegmentedProgressBar(
+    categories: List<StorageCategoryInfo>,
+    totalSpace: Long,
+    modifier: Modifier = Modifier
+) {
+    val trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                StorageCategoryCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Other Apps & System",
-                    size = Formatter.formatFileSize(context, others),
-                    icon = Icons.Rounded.InsertDriveFile,
-                    color = Color(0xFF607D8B)
+    Canvas(modifier = modifier) {
+        // Draw background track
+        drawRect(
+            color = trackColor,
+            size = size
+        )
+
+        if (totalSpace == 0L) return@Canvas
+
+        var currentStartX = 0f
+
+        // Draw segments
+        for (categoryInfo in categories) {
+            val width = (categoryInfo.sizeBytes.toFloat() / totalSpace.toFloat()) * size.width
+            if (width > 0) {
+                drawRect(
+                    color = getCategoryColor(categoryInfo.category),
+                    topLeft = Offset(currentStartX, 0f),
+                    size = Size(width, size.height)
                 )
+                currentStartX += width
             }
         }
     }
 }
 
 @Composable
-fun StorageCategoryCard(
-    modifier: Modifier = Modifier,
-    title: String,
-    size: String,
-    icon: ImageVector,
-    color: Color
+fun StorageCategoryListItem(
+    info: StorageCategoryInfo,
+    totalUsedSpace: Long,
+    onClick: () -> Unit
 ) {
+    val context = LocalContext.current
+
+    val (title, icon, color) = when (info.category) {
+        StorageCategory.IMAGES -> Triple("Images", Icons.Rounded.Image, getCategoryColor(StorageCategory.IMAGES))
+        StorageCategory.VIDEOS -> Triple("Videos", Icons.Rounded.VideoFile, getCategoryColor(StorageCategory.VIDEOS))
+        StorageCategory.AUDIO -> Triple("Audio", Icons.Rounded.AudioFile, getCategoryColor(StorageCategory.AUDIO))
+        StorageCategory.DOCUMENTS -> Triple("Documents", Icons.Rounded.Folder, getCategoryColor(StorageCategory.DOCUMENTS))
+        StorageCategory.APPS -> Triple("APKs & Installations", Icons.Rounded.Android, getCategoryColor(StorageCategory.APPS))
+        StorageCategory.ARCHIVES -> Triple("Archives", Icons.Rounded.Archive, getCategoryColor(StorageCategory.ARCHIVES))
+        StorageCategory.OTHER -> Triple("Other Files", Icons.Rounded.InsertDriveFile, getCategoryColor(StorageCategory.OTHER))
+        StorageCategory.SYSTEM -> Triple("System & App Data", Icons.Rounded.Memory, getCategoryColor(StorageCategory.SYSTEM))
+    }
+
+    val progress = if (totalUsedSpace > 0) (info.sizeBytes.toFloat() / totalUsedSpace.toFloat()) else 0f
+
     Surface(
-        modifier = modifier,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                // If it's a category we can't fetch lists for easily, maybe disable click
+                if (info.category != StorageCategory.SYSTEM && info.category != StorageCategory.OTHER) {
+                    onClick()
+                }
+            },
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
@@ -214,17 +239,38 @@ fun StorageCategoryCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-            )
-            Text(
-                text = size,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.secondary
-            )
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Text(
+                        text = Formatter.formatFileSize(context, info.sizeBytes),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(MaterialTheme.shapes.small),
+                    color = color,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+            }
         }
     }
 }

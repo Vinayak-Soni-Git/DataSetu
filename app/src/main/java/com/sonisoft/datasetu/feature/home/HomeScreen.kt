@@ -111,11 +111,11 @@ fun HomeScreen(
             )
         },
         containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(innerPadding)
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {

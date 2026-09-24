@@ -1,22 +1,27 @@
 package com.sonisoft.datasetu.data.repository
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Environment
 import android.os.StatFs
 import android.provider.MediaStore
 import android.webkit.MimeTypeMap
+import com.sonisoft.datasetu.domain.model.FileItem
 import com.sonisoft.datasetu.domain.model.StorageCategory
 import com.sonisoft.datasetu.domain.model.StorageCategoryInfo
 import com.sonisoft.datasetu.domain.model.StorageOverview
 import com.sonisoft.datasetu.domain.repository.StorageRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 class StorageRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context
@@ -26,12 +31,12 @@ class StorageRepositoryImpl @Inject constructor(
         while (true) {
             val overview = calculateStorageOverview()
             emit(overview)
-            delay(5000) // Poll every 5 seconds for updates (could also use ContentObserver for real-time)
+            delay(5000.milliseconds) // Poll every 5 seconds for updates (could also use ContentObserver for real-time)
         }
     }.flowOn(Dispatchers.IO)
 
     private fun calculateStorageOverview(): StorageOverview {
-        val path = Environment.getExternalStorageDirectory().absolutePath
+        val path = Environment.getDataDirectory().absolutePath
         val stat = StatFs(path)
         val blockSize = stat.blockSizeLong
         val totalBlocks = stat.blockCountLong
@@ -41,92 +46,178 @@ class StorageRepositoryImpl @Inject constructor(
         val freeSpace = availableBlocks * blockSize
         val usedSpace = totalSpace - freeSpace
 
-        val imagesInfo = getCategoryInfo(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            StorageCategory.IMAGES
-        )
-        val videosInfo = getCategoryInfo(
-            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-            StorageCategory.VIDEOS
-        )
-        val audioInfo = getCategoryInfo(
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            StorageCategory.AUDIO
-        )
-        
-        // Documents: MIME types related to docs
-        val docsInfo = getDocumentsInfo()
+        var imagesSize = 0L
+        var videosSize = 0L
+        var audioSize = 0L
+        var docsSize = 0L
+        var archivesSize = 0L
+        var apksSize = 0L
+        var otherSize = 0L
 
-        val categorizedSpace = imagesInfo.sizeBytes + videosInfo.sizeBytes + audioInfo.sizeBytes + docsInfo.sizeBytes
+        var imagesCount = 0
+        var videosCount = 0
+        var audioCount = 0
+        var docsCount = 0
+        var archivesCount = 0
+        var apksCount = 0
+        var otherCount = 0
+
+        val uri = MediaStore.Files.getContentUri("external")
+        val projection = arrayOf(
+            MediaStore.Files.FileColumns.SIZE,
+            MediaStore.Files.FileColumns.MEDIA_TYPE,
+            MediaStore.Files.FileColumns.MIME_TYPE
+        )
+
+        try {
+            context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
+                val typeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MEDIA_TYPE)
+                val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MIME_TYPE)
+
+                while (cursor.moveToNext()) {
+                    val size = cursor.getLong(sizeCol)
+                    if (size <= 0) continue
+
+                    val mediaType = cursor.getInt(typeCol)
+                    val mimeType = cursor.getString(mimeCol) ?: ""
+
+                    when {
+                        mediaType == MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE -> {
+                            imagesSize += size
+                            imagesCount++
+                        }
+                        mediaType == MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO -> {
+                            videosSize += size
+                            videosCount++
+                        }
+                        mediaType == MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO || mediaType == MediaStore.Files.FileColumns.MEDIA_TYPE_PLAYLIST -> {
+                            audioSize += size
+                            audioCount++
+                        }
+                        mediaType == MediaStore.Files.FileColumns.MEDIA_TYPE_DOCUMENT || mimeType.startsWith("text/") || mimeType.contains("pdf") || mimeType.contains("msword") || mimeType.contains("excel") -> {
+                            docsSize += size
+                            docsCount++
+                        }
+                        mimeType == "application/vnd.android.package-archive" -> {
+                            apksSize += size
+                            apksCount++
+                        }
+                        mimeType.contains("zip") || mimeType.contains("rar") || mimeType.contains("tar") || mimeType.contains("7z") -> {
+                            archivesSize += size
+                            archivesCount++
+                        }
+                        else -> {
+                            otherSize += size
+                            otherCount++
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Add installed apps size
+        var installedAppsSize = 0L
+        var installedAppsCount = 0
+        try {
+            val pm = context.packageManager
+            val packages = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+            for (app in packages) {
+                if ((app.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
+                    val file = File(app.sourceDir)
+                    if (file.exists()) {
+                        installedAppsSize += file.length()
+                        installedAppsCount++
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         
-        // Calculate "Other" space (everything else taking up room)
-        val otherSpace = maxOf(0L, usedSpace - categorizedSpace)
-        val otherInfo = StorageCategoryInfo(StorageCategory.OTHER, otherSpace, 0)
+        val appsSizeTotal = apksSize + installedAppsSize
+        val appsCountTotal = apksCount + installedAppsCount
+
+        val mediaTotal = imagesSize + videosSize + audioSize + docsSize + archivesSize + appsSizeTotal + otherSize
+        
+        // System is the remaining used space (total used - all media we could find)
+        val systemSpace = maxOf(0L, usedSpace - mediaTotal)
 
         return StorageOverview(
             totalSpaceBytes = totalSpace,
             freeSpaceBytes = freeSpace,
             usedSpaceBytes = usedSpace,
-            categories = listOf(imagesInfo, videosInfo, audioInfo, docsInfo, otherInfo)
+            categories = listOf(
+                StorageCategoryInfo(StorageCategory.IMAGES, imagesSize, imagesCount),
+                StorageCategoryInfo(StorageCategory.VIDEOS, videosSize, videosCount),
+                StorageCategoryInfo(StorageCategory.AUDIO, audioSize, audioCount),
+                StorageCategoryInfo(StorageCategory.DOCUMENTS, docsSize, docsCount),
+                StorageCategoryInfo(StorageCategory.APPS, appsSizeTotal, appsCountTotal),
+                StorageCategoryInfo(StorageCategory.ARCHIVES, archivesSize, archivesCount),
+                StorageCategoryInfo(StorageCategory.OTHER, otherSize, otherCount),
+                StorageCategoryInfo(StorageCategory.SYSTEM, systemSpace, 1)
+            )
         )
     }
 
-    private fun getCategoryInfo(uri: Uri, category: StorageCategory): StorageCategoryInfo {
-        var totalSize = 0L
-        var count = 0
-
-        val projection = arrayOf(MediaStore.MediaColumns.SIZE)
+    override fun getFilesInCategory(category: StorageCategory): Flow<List<FileItem>> = flow {
+        val files = mutableListOf<FileItem>()
         
-        try {
-            context.contentResolver.query(
-                uri,
-                projection,
-                null,
-                null,
-                null
-            )?.use { cursor ->
-                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
-                while (cursor.moveToNext()) {
-                    totalSize += cursor.getLong(sizeColumn)
-                    count++
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        return StorageCategoryInfo(category, totalSize, count)
-    }
-
-    private fun getDocumentsInfo(): StorageCategoryInfo {
-        var totalSize = 0L
-        var count = 0
-
         val uri = MediaStore.Files.getContentUri("external")
-        val projection = arrayOf(MediaStore.Files.FileColumns.SIZE)
-        
-        // Filter by document mime types or MediaStore.Files.FileColumns.MEDIA_TYPE == MEDIA_TYPE_DOCUMENT
-        val selection = "${MediaStore.Files.FileColumns.MEDIA_TYPE} = ?"
-        val selectionArgs = arrayOf(MediaStore.Files.FileColumns.MEDIA_TYPE_DOCUMENT.toString())
+        val projection = arrayOf(
+            MediaStore.Files.FileColumns._ID,
+            MediaStore.Files.FileColumns.DISPLAY_NAME,
+            MediaStore.Files.FileColumns.SIZE,
+            MediaStore.Files.FileColumns.MIME_TYPE,
+            MediaStore.Files.FileColumns.DATE_MODIFIED
+        )
+
+        val sortOrder = "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC"
 
         try {
-            context.contentResolver.query(
-                uri,
-                projection,
-                selection,
-                selectionArgs,
-                null
-            )?.use { cursor ->
-                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
+            context.contentResolver.query(uri, projection, null, null, sortOrder)?.use { cursor ->
+                val idCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID)
+                val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
+                val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MIME_TYPE)
+                val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_MODIFIED)
+
                 while (cursor.moveToNext()) {
-                    totalSize += cursor.getLong(sizeColumn)
-                    count++
+                    val size = cursor.getLong(sizeCol)
+                    if (size <= 0) continue
+
+                    val mimeType = cursor.getString(mimeCol) ?: ""
+                    
+                    val isMatch = when (category) {
+                        StorageCategory.IMAGES -> mimeType.startsWith("image/")
+                        StorageCategory.VIDEOS -> mimeType.startsWith("video/")
+                        StorageCategory.AUDIO -> mimeType.startsWith("audio/") || mimeType == "application/x-mpegurl"
+                        StorageCategory.DOCUMENTS -> mimeType.startsWith("text/") || mimeType.contains("pdf") || mimeType.contains("msword") || mimeType.contains("excel")
+                        StorageCategory.APPS -> mimeType == "application/vnd.android.package-archive"
+                        StorageCategory.ARCHIVES -> mimeType.contains("zip") || mimeType.contains("rar") || mimeType.contains("tar") || mimeType.contains("7z")
+                        StorageCategory.OTHER -> !mimeType.startsWith("image/") && !mimeType.startsWith("video/") && !mimeType.startsWith("audio/") && !mimeType.startsWith("text/") && !mimeType.contains("pdf") && !mimeType.contains("msword") && !mimeType.contains("excel") && mimeType != "application/vnd.android.package-archive" && !mimeType.contains("zip") && !mimeType.contains("rar") && !mimeType.contains("tar") && !mimeType.contains("7z")
+                        else -> false
+                    }
+
+                    if (isMatch) {
+                        val id = cursor.getLong(idCol)
+                        val name = cursor.getString(nameCol) ?: "Unknown"
+                        val date = cursor.getLong(dateCol) * 1000 // Convert to ms
+                        
+                        val fileUri = Uri.withAppendedPath(uri, id.toString())
+                        
+                        files.add(
+                            FileItem(id, name, size, fileUri, mimeType, date)
+                        )
+                    }
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
-        return StorageCategoryInfo(StorageCategory.DOCUMENTS, totalSize, count)
-    }
+        
+        emit(files)
+    }.flowOn(Dispatchers.IO)
 }
