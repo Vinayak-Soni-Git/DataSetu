@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.sonisoft.datasetu.domain.model.FileItem
 import com.sonisoft.datasetu.domain.model.StorageCategory
+import com.sonisoft.datasetu.core.util.FileIntentHelper
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -41,9 +42,11 @@ import java.util.Locale
 @Composable
 fun FilesListScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToImageViewer: (String) -> Unit,
     viewModel: FilesListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -99,7 +102,14 @@ fun FilesListScreen(
                     items(uiState.files, key = { it.id }) { fileItem ->
                         FileListItem(
                             fileItem = fileItem,
-                            category = uiState.category
+                            category = uiState.category,
+                            onClick = {
+                                if (fileItem.mimeType.startsWith("image/")) {
+                                    onNavigateToImageViewer(fileItem.uri.toString())
+                                } else {
+                                    FileIntentHelper.openFile(context, fileItem.uri, fileItem.mimeType)
+                                }
+                            }
                         )
                     }
                 }
@@ -111,7 +121,8 @@ fun FilesListScreen(
 @Composable
 fun FileListItem(
     fileItem: FileItem,
-    category: StorageCategory?
+    category: StorageCategory?,
+    onClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val dateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
@@ -120,7 +131,8 @@ fun FileListItem(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier

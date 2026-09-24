@@ -260,4 +260,60 @@ class StorageRepositoryImpl @Inject constructor(
         
         emit(files)
     }.flowOn(Dispatchers.IO)
+
+    override fun getRecentFiles(limit: Int): Flow<List<FileItem>> = flow {
+        val files = mutableListOf<FileItem>()
+        
+        val uri = MediaStore.Files.getContentUri("external")
+        val projection = arrayOf(
+            MediaStore.Files.FileColumns._ID,
+            MediaStore.Files.FileColumns.DISPLAY_NAME,
+            MediaStore.Files.FileColumns.SIZE,
+            MediaStore.Files.FileColumns.MIME_TYPE,
+            MediaStore.Files.FileColumns.DATE_MODIFIED,
+            MediaStore.Files.FileColumns.MEDIA_TYPE
+        )
+
+        val bundle = Bundle().apply {
+            putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER, "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC")
+            putInt(ContentResolver.QUERY_ARG_LIMIT, limit)
+            val selection = "${MediaStore.Files.FileColumns.MEDIA_TYPE} IN (?, ?, ?, ?)"
+            val selectionArgs = arrayOf(
+                MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE.toString(),
+                MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO.toString(),
+                MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO.toString(),
+                MediaStore.Files.FileColumns.MEDIA_TYPE_DOCUMENT.toString()
+            )
+            putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection)
+            putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs)
+        }
+
+        try {
+            context.contentResolver.query(uri, projection, bundle, null)?.use { cursor ->
+                val idCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID)
+                val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
+                val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MIME_TYPE)
+                val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_MODIFIED)
+
+                while (cursor.moveToNext()) {
+                    val size = cursor.getLong(sizeCol)
+                    if (size <= 0) continue
+
+                    val mimeType = cursor.getString(mimeCol) ?: ""
+                    val id = cursor.getLong(idCol)
+                    val name = cursor.getString(nameCol) ?: "Unknown"
+                    val date = cursor.getLong(dateCol) * 1000 // Convert to ms
+                    
+                    val fileUri = Uri.withAppendedPath(uri, id.toString())
+                    
+                    files.add(FileItem(id, name, size, fileUri, mimeType, date))
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        
+        emit(files)
+    }.flowOn(Dispatchers.IO)
 }

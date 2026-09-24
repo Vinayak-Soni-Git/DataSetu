@@ -2,17 +2,11 @@ package com.sonisoft.datasetu.feature.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.CallMade
@@ -20,14 +14,10 @@ import androidx.compose.material.icons.automirrored.rounded.CallReceived
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.WifiFind
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Send
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,6 +29,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sonisoft.datasetu.domain.model.FileItem
+import com.sonisoft.datasetu.feature.storage.FileListItem
+import com.sonisoft.datasetu.core.util.FileIntentHelper
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun HomeRoute(
@@ -47,9 +41,11 @@ fun HomeRoute(
     onNavigateToReceive: () -> Unit,
     onNavigateToDiscovery: () -> Unit,
     onNavigateToHistory: () -> Unit,
+    onNavigateToImageViewer: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     HomeScreen(
         uiState = uiState,
@@ -57,7 +53,20 @@ fun HomeRoute(
         onNavigateToSend = onNavigateToSend,
         onNavigateToReceive = onNavigateToReceive,
         onNavigateToDiscovery = onNavigateToDiscovery,
-        onNavigateToHistory = onNavigateToHistory
+        onNavigateToHistory = onNavigateToHistory,
+        onFileClick = { file ->
+            if (uiState.selectedFiles.isNotEmpty()) {
+                viewModel.toggleFileSelection(file)
+            } else {
+                if (file.mimeType.startsWith("image/")) {
+                    onNavigateToImageViewer(file.uri.toString())
+                } else {
+                    FileIntentHelper.openFile(context, file.uri, file.mimeType)
+                }
+            }
+        },
+        onFileLongClick = viewModel::toggleFileSelection,
+        onClearSelection = viewModel::clearSelection
     )
 }
 
@@ -69,11 +78,29 @@ fun HomeScreen(
     onNavigateToSend: () -> Unit,
     onNavigateToReceive: () -> Unit,
     onNavigateToDiscovery: () -> Unit,
-    onNavigateToHistory: () -> Unit
+    onNavigateToHistory: () -> Unit,
+    onFileClick: (FileItem) -> Unit,
+    onFileLongClick: (FileItem) -> Unit,
+    onClearSelection: () -> Unit
 ) {
+    val isSelectionMode = uiState.selectedFiles.isNotEmpty()
+
     Scaffold(
         topBar = {
-            TopAppBar(
+            if (isSelectionMode) {
+                TopAppBar(
+                    title = { Text("${uiState.selectedFiles.size} Selected", style = MaterialTheme.typography.titleLarge) },
+                    navigationIcon = {
+                        IconButton(onClick = onClearSelection) {
+                            Icon(Icons.Rounded.Close, contentDescription = "Close selection")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                )
+            } else {
+                TopAppBar(
                 title = {
                     Column {
                         Text(
@@ -109,6 +136,18 @@ fun HomeScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
+            }
+        },
+        floatingActionButton = {
+            if (isSelectionMode) {
+                ExtendedFloatingActionButton(
+                    onClick = onNavigateToSend,
+                    icon = { Icon(Icons.Rounded.Send, contentDescription = "Send Selected") },
+                    text = { Text("Send Files") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
@@ -135,7 +174,69 @@ fun HomeScreen(
             }
 
             item {
-                RecentActivityPlaceholder()
+                if (uiState.isRecentFilesLoading) {
+                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else if (uiState.recentFiles.isEmpty()) {
+                    RecentActivityPlaceholder()
+                } else {
+                    Text(
+                        text = "Recent Files",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+
+            if (uiState.recentFiles.isNotEmpty()) {
+                items(uiState.recentFiles, key = { it.id }) { fileItem ->
+                    val isSelected = uiState.selectedFiles.contains(fileItem)
+                    SelectableFileItem(
+                        fileItem = fileItem,
+                        isSelected = isSelected,
+                        onClick = { onFileClick(fileItem) },
+                        onLongClick = { onFileLongClick(fileItem) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun SelectableFileItem(
+    fileItem: FileItem,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(end = 8.dp)
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                FileListItem(fileItem = fileItem, category = null) // Reusing existing item
+            }
+            if (isSelected) {
+                Icon(
+                    Icons.Rounded.CheckCircle,
+                    contentDescription = "Selected",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(8.dp)
+                )
             }
         }
     }

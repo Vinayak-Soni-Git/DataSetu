@@ -7,16 +7,30 @@ import com.sonisoft.datasetu.feature.discovery.DiscoveryScreen
 import com.sonisoft.datasetu.feature.history.HistoryScreen
 import com.sonisoft.datasetu.feature.home.HomeRoute
 import com.sonisoft.datasetu.feature.profile.ProfileRoute
-import com.sonisoft.datasetu.feature.receive.ReceiveScreen
 import com.sonisoft.datasetu.feature.send.SendScreen
+import com.sonisoft.datasetu.feature.receive.ReceiveScreen
 import com.sonisoft.datasetu.feature.settings.SettingsScreen
 import com.sonisoft.datasetu.feature.storage.StorageScreen
+import com.sonisoft.datasetu.feature.viewer.ImageViewerScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.sonisoft.datasetu.feature.storage.FilesListScreen
 import com.sonisoft.datasetu.feature.transfer.TransferScreen
 import com.sonisoft.datasetu.navigation.AppNavigator
 import com.sonisoft.datasetu.navigation.route.MainRoute
 
 fun NavGraphBuilder.mainGraph(navigator: AppNavigator) {
+    composable(
+        route = MainRoute.ImageViewer.route,
+        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val uri = backStackEntry.arguments?.getString("uri") ?: ""
+        ImageViewerScreen(
+            uriString = uri,
+            onNavigateBack = { navigator.popBack() }
+        )
+    }
+
     composable(
         route = MainRoute.Home.route
     ) {
@@ -25,10 +39,24 @@ fun NavGraphBuilder.mainGraph(navigator: AppNavigator) {
             onNavigateToSend = { navigator.navigateToSend() },
             onNavigateToReceive = { navigator.navigateToReceive() },
             onNavigateToDiscovery = { navigator.navigateToDiscovery() },
-            onNavigateToHistory = { navigator.navigateToHistory() }
+            onNavigateToHistory = { navigator.navigateToHistory() },
+            onNavigateToImageViewer = { uri -> 
+                navigator.navController.navigate(MainRoute.ImageViewer.createRoute(uri))
+            }
         )
     }
     
+    composable(
+        route = MainRoute.ImageViewer.route,
+        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val uri = backStackEntry.arguments?.getString("uri") ?: ""
+        ImageViewerScreen(
+            uriString = uri,
+            onNavigateBack = { navigator.popBack() }
+        )
+    }
+
     composable(
         route = MainRoute.Storage.route
     ) {
@@ -40,9 +68,34 @@ fun NavGraphBuilder.mainGraph(navigator: AppNavigator) {
     }
 
     composable(
+        route = MainRoute.ImageViewer.route,
+        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val uri = backStackEntry.arguments?.getString("uri") ?: ""
+        ImageViewerScreen(
+            uriString = uri,
+            onNavigateBack = { navigator.popBack() }
+        )
+    }
+
+    composable(
         route = MainRoute.FilesList.route
     ) {
         FilesListScreen(
+            onNavigateBack = { navigator.popBack() },
+            onNavigateToImageViewer = { uri -> 
+                navigator.navController.navigate(MainRoute.ImageViewer.createRoute(uri))
+            }
+        )
+    }
+
+    composable(
+        route = MainRoute.ImageViewer.route,
+        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val uri = backStackEntry.arguments?.getString("uri") ?: ""
+        ImageViewerScreen(
+            uriString = uri,
             onNavigateBack = { navigator.popBack() }
         )
     }
@@ -56,11 +109,33 @@ fun NavGraphBuilder.mainGraph(navigator: AppNavigator) {
     }
 
     composable(
+        route = MainRoute.ImageViewer.route,
+        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val uri = backStackEntry.arguments?.getString("uri") ?: ""
+        ImageViewerScreen(
+            uriString = uri,
+            onNavigateBack = { navigator.popBack() }
+        )
+    }
+
+    composable(
         route = MainRoute.Profile.route
     ) {
         ProfileRoute(
             onNavigateBack = { navigator.popBack() },
             onNavigateToLogin = { navigator.navigateToLogin() }
+        )
+    }
+
+    composable(
+        route = MainRoute.ImageViewer.route,
+        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val uri = backStackEntry.arguments?.getString("uri") ?: ""
+        ImageViewerScreen(
+            uriString = uri,
+            onNavigateBack = { navigator.popBack() }
         )
     }
 
@@ -71,9 +146,31 @@ fun NavGraphBuilder.mainGraph(navigator: AppNavigator) {
     }
 
     composable(
+        route = MainRoute.ImageViewer.route,
+        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val uri = backStackEntry.arguments?.getString("uri") ?: ""
+        ImageViewerScreen(
+            uriString = uri,
+            onNavigateBack = { navigator.popBack() }
+        )
+    }
+
+    composable(
         route = MainRoute.Send.route
     ) {
         SendScreen()
+    }
+
+    composable(
+        route = MainRoute.ImageViewer.route,
+        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val uri = backStackEntry.arguments?.getString("uri") ?: ""
+        ImageViewerScreen(
+            uriString = uri,
+            onNavigateBack = { navigator.popBack() }
+        )
     }
 
     composable(
@@ -83,15 +180,48 @@ fun NavGraphBuilder.mainGraph(navigator: AppNavigator) {
     }
 
     composable(
+        route = MainRoute.ImageViewer.route,
+        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val uri = backStackEntry.arguments?.getString("uri") ?: ""
+        ImageViewerScreen(
+            uriString = uri,
+            onNavigateBack = { navigator.popBack() }
+        )
+    }
+
+    composable(
         route = MainRoute.Transfer.route
     ) {
         TransferScreen()
     }
 
     composable(
+        route = MainRoute.ImageViewer.route,
+        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val uri = backStackEntry.arguments?.getString("uri") ?: ""
+        ImageViewerScreen(
+            uriString = uri,
+            onNavigateBack = { navigator.popBack() }
+        )
+    }
+
+    composable(
         route = MainRoute.History.route
     ) {
         HistoryScreen()
+    }
+
+    composable(
+        route = MainRoute.ImageViewer.route,
+        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val uri = backStackEntry.arguments?.getString("uri") ?: ""
+        ImageViewerScreen(
+            uriString = uri,
+            onNavigateBack = { navigator.popBack() }
+        )
     }
 
     composable(

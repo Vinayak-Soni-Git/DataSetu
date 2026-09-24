@@ -8,4 +8,5 @@ import kotlinx.coroutines.flow.Flow
 interface StorageRepository {
     fun getStorageOverview(): Flow<StorageOverview>
     fun getFilesInCategory(category: StorageCategory): Flow<List<FileItem>>
+    fun getRecentFiles(limit: Int = 20): Flow<List<FileItem>>
 }
