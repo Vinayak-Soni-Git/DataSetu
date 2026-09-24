@@ -11,6 +11,7 @@ import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.VideoFile
 import androidx.compose.material.icons.rounded.AudioFile
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Android
 import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.InsertDriveFile
@@ -151,7 +152,10 @@ fun FileListItem(
                         StorageCategory.AUDIO -> Icons.Rounded.AudioFile
                         StorageCategory.DOCUMENTS -> Icons.Rounded.Folder
                         StorageCategory.APPS -> Icons.Rounded.Android
+                        StorageCategory.APKS -> Icons.Rounded.Android
                         StorageCategory.ARCHIVES -> Icons.Rounded.Archive
+                        StorageCategory.TRASH -> Icons.Rounded.Delete
+                        StorageCategory.SYSTEM -> Icons.Rounded.Memory
                         else -> Icons.Rounded.InsertDriveFile
                     }
                     Icon(

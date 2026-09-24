@@ -1,28 +1,52 @@
 package com.sonisoft.datasetu.feature.storage
 
 import android.text.format.Formatter
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.rounded.Android
+import androidx.compose.material.icons.rounded.Archive
+import androidx.compose.material.icons.rounded.AudioFile
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.InsertDriveFile
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.VideoFile
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import com.sonisoft.datasetu.domain.model.StorageCategory
 import com.sonisoft.datasetu.domain.model.StorageCategoryInfo
 
@@ -146,7 +170,9 @@ fun getCategoryColor(category: StorageCategory): Color {
         StorageCategory.AUDIO -> Color(0xFFFF9800)
         StorageCategory.DOCUMENTS -> Color(0xFF9C27B0)
         StorageCategory.APPS -> Color(0xFF00BCD4)
+        StorageCategory.APKS -> Color(0xFF009688)
         StorageCategory.ARCHIVES -> Color(0xFF795548)
+        StorageCategory.TRASH -> Color(0xFFF44336)
         StorageCategory.OTHER -> Color(0xFF607D8B)
         StorageCategory.SYSTEM -> Color(0xFFE91E63)
     }
@@ -199,8 +225,10 @@ fun StorageCategoryListItem(
         StorageCategory.VIDEOS -> Triple("Videos", Icons.Rounded.VideoFile, getCategoryColor(StorageCategory.VIDEOS))
         StorageCategory.AUDIO -> Triple("Audio", Icons.Rounded.AudioFile, getCategoryColor(StorageCategory.AUDIO))
         StorageCategory.DOCUMENTS -> Triple("Documents", Icons.Rounded.Folder, getCategoryColor(StorageCategory.DOCUMENTS))
-        StorageCategory.APPS -> Triple("APKs & Installations", Icons.Rounded.Android, getCategoryColor(StorageCategory.APPS))
+        StorageCategory.APPS -> Triple("Apps", Icons.Rounded.Android, getCategoryColor(StorageCategory.APPS))
+        StorageCategory.APKS -> Triple("APKs", Icons.Rounded.Android, getCategoryColor(StorageCategory.APKS))
         StorageCategory.ARCHIVES -> Triple("Archives", Icons.Rounded.Archive, getCategoryColor(StorageCategory.ARCHIVES))
+        StorageCategory.TRASH -> Triple("Recently Deleted", Icons.Rounded.Delete, getCategoryColor(StorageCategory.TRASH))
         StorageCategory.OTHER -> Triple("Other Files", Icons.Rounded.InsertDriveFile, getCategoryColor(StorageCategory.OTHER))
         StorageCategory.SYSTEM -> Triple("System & App Data", Icons.Rounded.Memory, getCategoryColor(StorageCategory.SYSTEM))
     }

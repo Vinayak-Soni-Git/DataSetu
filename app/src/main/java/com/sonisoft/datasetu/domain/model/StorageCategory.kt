@@ -6,7 +6,9 @@ enum class StorageCategory {
     AUDIO,
     DOCUMENTS,
     APPS,
+    APKS,
     ARCHIVES,
+    TRASH,
     OTHER,
     SYSTEM
 }

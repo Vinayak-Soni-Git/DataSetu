@@ -1,9 +1,11 @@
 package com.sonisoft.datasetu.data.repository
 
+import android.content.ContentResolver
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
 import android.provider.MediaStore
@@ -42,8 +44,10 @@ class StorageRepositoryImpl @Inject constructor(
         val totalBlocks = stat.blockCountLong
         val availableBlocks = stat.availableBlocksLong
 
-        val totalSpace = totalBlocks * blockSize
+        val actualTotalSpace = totalBlocks * blockSize
         val freeSpace = availableBlocks * blockSize
+        
+        val totalSpace = getAdvertisedTotalSpace(actualTotalSpace)
         val usedSpace = totalSpace - freeSpace
 
         var imagesSize = 0L
@@ -91,7 +95,7 @@ class StorageRepositoryImpl @Inject constructor(
                             videosSize += size
                             videosCount++
                         }
-                        mediaType == MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO || mediaType == MediaStore.Files.FileColumns.MEDIA_TYPE_PLAYLIST -> {
+                        mediaType == MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO || mediaType == 3 /* PLAYLIST */ -> {
                             audioSize += size
                             audioCount++
                         }
@@ -117,6 +121,26 @@ class StorageRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        
+        var trashSize = 0L
+        var trashCount = 0
+        try {
+            val bundle = Bundle().apply {
+                putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_ONLY)
+            }
+            context.contentResolver.query(uri, projection, bundle, null)?.use { cursor ->
+                val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
+                while (cursor.moveToNext()) {
+                    val size = cursor.getLong(sizeCol)
+                    if (size > 0) {
+                        trashSize += size
+                        trashCount++
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         // Add installed apps size
         var installedAppsSize = 0L
@@ -136,11 +160,8 @@ class StorageRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        
-        val appsSizeTotal = apksSize + installedAppsSize
-        val appsCountTotal = apksCount + installedAppsCount
 
-        val mediaTotal = imagesSize + videosSize + audioSize + docsSize + archivesSize + appsSizeTotal + otherSize
+        val mediaTotal = imagesSize + videosSize + audioSize + docsSize + archivesSize + apksSize + otherSize + installedAppsSize + trashSize
         
         // System is the remaining used space (total used - all media we could find)
         val systemSpace = maxOf(0L, usedSpace - mediaTotal)
@@ -154,12 +175,25 @@ class StorageRepositoryImpl @Inject constructor(
                 StorageCategoryInfo(StorageCategory.VIDEOS, videosSize, videosCount),
                 StorageCategoryInfo(StorageCategory.AUDIO, audioSize, audioCount),
                 StorageCategoryInfo(StorageCategory.DOCUMENTS, docsSize, docsCount),
-                StorageCategoryInfo(StorageCategory.APPS, appsSizeTotal, appsCountTotal),
+                StorageCategoryInfo(StorageCategory.APPS, installedAppsSize, installedAppsCount),
+                StorageCategoryInfo(StorageCategory.APKS, apksSize, apksCount),
                 StorageCategoryInfo(StorageCategory.ARCHIVES, archivesSize, archivesCount),
+                StorageCategoryInfo(StorageCategory.TRASH, trashSize, trashCount),
                 StorageCategoryInfo(StorageCategory.OTHER, otherSize, otherCount),
                 StorageCategoryInfo(StorageCategory.SYSTEM, systemSpace, 1)
             )
         )
+    }
+
+    private fun getAdvertisedTotalSpace(actualSpace: Long): Long {
+        val gb = 1_000_000_000L
+        val standardSizes = listOf(8L, 16L, 32L, 64L, 128L, 256L, 512L, 1024L)
+        for (size in standardSizes) {
+            if (actualSpace <= size * gb) {
+                return size * gb
+            }
+        }
+        return actualSpace
     }
 
     override fun getFilesInCategory(category: StorageCategory): Flow<List<FileItem>> = flow {
@@ -174,10 +208,15 @@ class StorageRepositoryImpl @Inject constructor(
             MediaStore.Files.FileColumns.DATE_MODIFIED
         )
 
-        val sortOrder = "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC"
+        val bundle = Bundle().apply {
+            putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER, "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC")
+            if (category == StorageCategory.TRASH) {
+                putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_ONLY)
+            }
+        }
 
         try {
-            context.contentResolver.query(uri, projection, null, null, sortOrder)?.use { cursor ->
+            context.contentResolver.query(uri, projection, bundle, null)?.use { cursor ->
                 val idCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID)
                 val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
                 val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
@@ -195,9 +234,10 @@ class StorageRepositoryImpl @Inject constructor(
                         StorageCategory.VIDEOS -> mimeType.startsWith("video/")
                         StorageCategory.AUDIO -> mimeType.startsWith("audio/") || mimeType == "application/x-mpegurl"
                         StorageCategory.DOCUMENTS -> mimeType.startsWith("text/") || mimeType.contains("pdf") || mimeType.contains("msword") || mimeType.contains("excel")
-                        StorageCategory.APPS -> mimeType == "application/vnd.android.package-archive"
+                        StorageCategory.APKS -> mimeType == "application/vnd.android.package-archive"
                         StorageCategory.ARCHIVES -> mimeType.contains("zip") || mimeType.contains("rar") || mimeType.contains("tar") || mimeType.contains("7z")
                         StorageCategory.OTHER -> !mimeType.startsWith("image/") && !mimeType.startsWith("video/") && !mimeType.startsWith("audio/") && !mimeType.startsWith("text/") && !mimeType.contains("pdf") && !mimeType.contains("msword") && !mimeType.contains("excel") && mimeType != "application/vnd.android.package-archive" && !mimeType.contains("zip") && !mimeType.contains("rar") && !mimeType.contains("tar") && !mimeType.contains("7z")
+                        StorageCategory.TRASH -> true // Since we already filtered MediaStore for only trashed items
                         else -> false
                     }
 
