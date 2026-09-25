@@ -18,6 +18,8 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import com.sonisoft.datasetu.manager.TransferStatus
 
+import com.sonisoft.datasetu.feature.transfer.components.ModernTransferUI
+
 @Composable
 fun ReceiveScreen(
     viewModel: ReceiveViewModel = hiltViewModel()
@@ -68,51 +70,11 @@ fun ReceiveScreen(
                 color = MaterialTheme.colorScheme.primary
             )
         } else {
-            // Show transfer progress
-            Text(
-                text = "Transferring...",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground
+            ModernTransferUI(
+                transferState = transferState,
+                isReceiver = true,
+                onReceiveMore = viewModel::resetAndReceiveMore
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "File: ${transferState.currentFileName}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.secondary
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            val progress = if (transferState.totalBytes > 0) {
-                transferState.bytesTransferred.toFloat() / transferState.totalBytes.toFloat()
-            } else 0f
-            
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth().height(8.dp),
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "${(progress * 100).toInt()}%",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            
-            if (transferState.status == TransferStatus.COMPLETED) {
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = "Transfer Complete!",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color(0xFF4CAF50)
-                )
-            } else if (transferState.status == TransferStatus.ERROR) {
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = "Error: ${transferState.error}",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
         }
     }
 }

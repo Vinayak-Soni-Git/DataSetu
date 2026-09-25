@@ -28,6 +28,8 @@ sealed class MainRoute(
 
     data object Receive : MainRoute("receive")
 
+    data object FileSelection : MainRoute("file_selection")
+
     data object Transfer : MainRoute("transfer")
 
     data object History : MainRoute("history")

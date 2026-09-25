@@ -159,7 +159,7 @@ fun NavGraphBuilder.mainGraph(navigator: AppNavigator) {
     composable(
         route = MainRoute.Send.route
     ) {
-        SendScreen()
+        SendScreen({navigator.popBack()})
     }
 
     composable(

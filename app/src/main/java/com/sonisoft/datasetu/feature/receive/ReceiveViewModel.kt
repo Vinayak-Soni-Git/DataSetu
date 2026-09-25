@@ -5,6 +5,9 @@ import android.net.wifi.WifiManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sonisoft.datasetu.manager.TransferManager
+import com.sonisoft.datasetu.manager.DeviceDiscoveryManager
+import com.sonisoft.datasetu.core.datastore.UserPreferences
+import kotlinx.coroutines.flow.first
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +20,9 @@ import javax.inject.Inject
 @HiltViewModel
 class ReceiveViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val transferManager: TransferManager
+    private val transferManager: TransferManager,
+    private val discoveryManager: DeviceDiscoveryManager,
+    private val userPreferences: UserPreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReceiveUiState())
@@ -28,6 +33,27 @@ class ReceiveViewModel @Inject constructor(
     init {
         generateQrCodeContent()
         startServer()
+        startBroadcasting()
+    }
+
+    private fun startBroadcasting() {
+        viewModelScope.launch {
+            val session = userPreferences.userSession.first()
+            val deviceName = session.deviceName.ifEmpty { session.userName }.ifEmpty { "DataSetuDevice" }
+            discoveryManager.startBroadcasting(deviceName)
+        }
+    }
+
+    fun resetAndReceiveMore() {
+        transferManager.resetState()
+        generateQrCodeContent()
+        startServer()
+        startBroadcasting()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        discoveryManager.stopBroadcasting()
     }
 
     private fun generateQrCodeContent() {

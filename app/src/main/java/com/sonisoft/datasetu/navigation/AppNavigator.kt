@@ -65,6 +65,10 @@ class AppNavigator(
         navController.navigate(MainRoute.Discovery.route)
     }
 
+    fun navigateToFileSelection() {
+        navController.navigate(MainRoute.FileSelection.route)
+    }
+
     fun navigateToSend() {
         navController.navigate(MainRoute.Send.route)
     }
