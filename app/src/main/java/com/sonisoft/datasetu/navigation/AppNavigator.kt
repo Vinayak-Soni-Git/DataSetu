@@ -2,7 +2,6 @@ package com.sonisoft.datasetu.navigation
 
 import android.os.Environment
 import androidx.navigation.NavHostController
-import com.sonisoft.datasetu.navigation.route.AuthRoute
 import com.sonisoft.datasetu.navigation.route.MainRoute
 import com.sonisoft.datasetu.navigation.route.OnboardingRoute
 
@@ -17,23 +16,6 @@ class AppNavigator(
             }
             launchSingleTop = true
         }
-    }
-
-    fun navigateToLogin() {
-        navController.navigate(AuthRoute.Login.route) {
-            popUpTo(navController.graph.id) {
-                inclusive = true
-            }
-            launchSingleTop = true
-        }
-    }
-
-    fun navigateToSignup() {
-        navController.navigate(AuthRoute.Signup.route)
-    }
-
-    fun navigateToCreateProfile() {
-        navController.navigate(OnboardingRoute.CreateProfile.route)
     }
 
     fun navigateToHome() {
@@ -65,12 +47,12 @@ class AppNavigator(
         navController.navigate(MainRoute.Discovery.route)
     }
 
-    fun navigateToFileSelection() {
-        navController.navigate(MainRoute.FileSelection.route)
-    }
-
     fun navigateToSend() {
         navController.navigate(MainRoute.Send.route)
+    }
+
+    fun navigateToFileSelection() {
+        navController.navigate(MainRoute.FileSelection.route)
     }
 
     fun navigateToReceive() {

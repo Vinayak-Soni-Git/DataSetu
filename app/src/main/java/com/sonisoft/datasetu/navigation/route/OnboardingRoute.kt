@@ -7,6 +7,4 @@ sealed class OnboardingRoute(
     data object Splash : OnboardingRoute("splash")
 
     data object Onboarding : OnboardingRoute("onboarding")
-
-    data object CreateProfile : OnboardingRoute("create_profile")
 }

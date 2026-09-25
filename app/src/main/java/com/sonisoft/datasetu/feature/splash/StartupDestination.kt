@@ -4,7 +4,5 @@ sealed interface StartupDestination {
 
     data object Onboarding : StartupDestination
 
-    data object Login : StartupDestination
-
     data object Home : StartupDestination
 }

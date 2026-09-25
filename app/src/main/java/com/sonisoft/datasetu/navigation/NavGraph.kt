@@ -1,5 +1,6 @@
 package com.sonisoft.datasetu.navigation
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.padding
@@ -7,18 +8,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.Modifier
 import com.sonisoft.datasetu.feature.splash.SplashRoute
-import com.sonisoft.datasetu.navigation.graph.authGraph
 import com.sonisoft.datasetu.navigation.graph.mainGraph
 import com.sonisoft.datasetu.navigation.graph.onboardingGraph
-import com.sonisoft.datasetu.navigation.route.MainRoute
 import com.sonisoft.datasetu.navigation.route.OnboardingRoute
+import com.sonisoft.datasetu.navigation.route.MainRoute
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun AppNavGraph() {
 
@@ -80,13 +81,11 @@ fun AppNavGraph() {
             ) {
                 SplashRoute(
                     onNavigateToOnboarding = { navigator.navigateToOnboarding() },
-                    onNavigateToLogin = { navigator.navigateToLogin() },
                     onNavigateToHome = { navigator.navigateToHome() }
                 )
             }
 
             onboardingGraph(navigator)
-            authGraph(navigator)
             mainGraph(navigator)
         }
     }

@@ -24,7 +24,6 @@ class SplashViewModel @Inject constructor(
             val userSession = userPreferences.userSession.first()
             val destination = when {
                 !userSession.onboardingCompleted -> StartupDestination.Onboarding
-                !userSession.isLoggedIn -> StartupDestination.Login
                 else -> StartupDestination.Home
             }
             _startupDestination.emit(destination)

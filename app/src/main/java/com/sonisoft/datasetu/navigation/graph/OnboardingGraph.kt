@@ -12,7 +12,7 @@ fun NavGraphBuilder.onboardingGraph(navigator: AppNavigator) {
         route = NavOnboardingRoute.Onboarding.route
     ) {
         OnboardingRoute(
-            onNavigateToSignup = { navigator.navigateToSignup() }
+            onNavigateToHome = { navigator.navigateToHome() }
         )
     }
 }

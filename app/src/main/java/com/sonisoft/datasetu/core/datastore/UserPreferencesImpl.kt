@@ -18,18 +18,6 @@ class UserPreferencesImpl(
                     prefs[PreferenceKeys.ONBOARDING_COMPLETED]
                         ?: false,
 
-                isLoggedIn =
-                    prefs[PreferenceKeys.IS_LOGGED_IN]
-                        ?: false,
-
-                userName =
-                    prefs[PreferenceKeys.USER_NAME]
-                        ?: "",
-
-                password =
-                    prefs[PreferenceKeys.PASSWORD]
-                        ?: "",
-
                 deviceName =
                     prefs[PreferenceKeys.DEVICE_NAME]
                         ?: ""
@@ -47,39 +35,6 @@ class UserPreferencesImpl(
         }
     }
 
-    override suspend fun setLoggedIn(
-        loggedIn: Boolean
-    ) {
-
-        context.dataStore.edit {
-
-            it[PreferenceKeys.IS_LOGGED_IN] =
-                loggedIn
-        }
-    }
-
-    override suspend fun saveUserName(
-        name: String
-    ) {
-
-        context.dataStore.edit {
-
-            it[PreferenceKeys.USER_NAME] =
-                name
-        }
-    }
-
-    override suspend fun savePassword(
-        password: String
-    ) {
-
-        context.dataStore.edit {
-
-            it[PreferenceKeys.PASSWORD] =
-                password
-        }
-    }
-
     override suspend fun saveDeviceName(
         deviceName: String
     ) {
@@ -88,15 +43,6 @@ class UserPreferencesImpl(
 
             it[PreferenceKeys.DEVICE_NAME] =
                 deviceName
-        }
-    }
-
-    override suspend fun logout() {
-
-        context.dataStore.edit {
-
-            it[PreferenceKeys.IS_LOGGED_IN] =
-                false
         }
     }
 }

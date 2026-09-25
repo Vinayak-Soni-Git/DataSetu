@@ -1,50 +1,33 @@
 package com.sonisoft.datasetu.feature.profile
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.sonisoft.datasetu.core.ui.theme.Shapes
 
 @Composable
 fun ProfileRoute(
     onNavigateBack: () -> Unit,
-    onNavigateToLogin: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is ProfileEvent.NavigateToLogin -> onNavigateToLogin()
-            }
-        }
-    }
-
     ProfileScreen(
         uiState = uiState,
-        onNavigateBack = onNavigateBack,
-        onLogoutClick = viewModel::onLogoutClick
+        onNavigateBack = onNavigateBack
     )
 }
 
@@ -52,8 +35,7 @@ fun ProfileRoute(
 @Composable
 fun ProfileScreen(
     uiState: ProfileUiState,
-    onNavigateBack: () -> Unit,
-    onLogoutClick: () -> Unit
+    onNavigateBack: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -104,7 +86,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(24.dp))
             
             Text(
-                text = uiState.userName.ifEmpty { "User" },
+                text = "Device Configuration",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -118,53 +100,17 @@ fun ProfileScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Account Information",
+                        text = "Device Information",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    InfoRow(label = "Username", value = uiState.userName)
-                    Divider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant)
                     InfoRow(label = "Device Name", value = uiState.deviceName.ifEmpty { "Not Set" })
                 }
             }
             
             Spacer(modifier = Modifier.weight(1f))
-            
-            Button(
-                onClick = onLogoutClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(4.dp),
-                shape = Shapes.small,
-                enabled = !uiState.isLoading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = "Logout",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Logout",
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
-            }
         }
     }
 }
@@ -194,7 +140,6 @@ fun InfoRow(label: String, value: String) {
 fun ProfileScreenPreview() {
     ProfileScreen(
         uiState = ProfileUiState(),
-        onNavigateBack = {},
-        onLogoutClick = {}
+        onNavigateBack = {}
     )
 }

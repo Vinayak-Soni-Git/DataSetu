@@ -11,21 +11,7 @@ interface UserPreferences {
         completed: Boolean
     )
 
-    suspend fun setLoggedIn(
-        loggedIn: Boolean
-    )
-
-    suspend fun saveUserName(
-        name: String
-    )
-
-    suspend fun savePassword(
-        password: String
-    )
-
     suspend fun saveDeviceName(
         deviceName: String
     )
-
-    suspend fun logout()
 }

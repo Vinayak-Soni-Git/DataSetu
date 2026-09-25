@@ -39,7 +39,7 @@ class ReceiveViewModel @Inject constructor(
     private fun startBroadcasting() {
         viewModelScope.launch {
             val session = userPreferences.userSession.first()
-            val deviceName = session.deviceName.ifEmpty { session.userName }.ifEmpty { "DataSetuDevice" }
+            val deviceName = session.deviceName.ifEmpty { "DataSetuDevice" }
             discoveryManager.startBroadcasting(deviceName)
         }
     }

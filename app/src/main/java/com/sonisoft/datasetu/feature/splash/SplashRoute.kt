@@ -7,7 +7,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun SplashRoute(
     onNavigateToOnboarding: () -> Unit,
-    onNavigateToLogin: () -> Unit,
     onNavigateToHome: () -> Unit,
     viewModel: SplashViewModel = hiltViewModel()
 ) {
@@ -15,7 +14,6 @@ fun SplashRoute(
         viewModel.startupDestination.collect { destination ->
             when (destination) {
                 is StartupDestination.Onboarding -> onNavigateToOnboarding()
-                is StartupDestination.Login -> onNavigateToLogin()
                 is StartupDestination.Home -> onNavigateToHome()
             }
         }

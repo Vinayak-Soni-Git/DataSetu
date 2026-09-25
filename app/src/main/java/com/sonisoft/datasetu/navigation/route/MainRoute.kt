@@ -10,6 +10,8 @@ sealed class MainRoute(
 
     data object Storage : MainRoute("storage")
 
+    data object Profile : MainRoute("profile")
+
     data object FilesList : MainRoute("files_list/{categoryName}") {
         fun createRoute(categoryName: String) = "files_list/$categoryName"
     }
@@ -17,8 +19,6 @@ sealed class MainRoute(
     data object ImageViewer : MainRoute("image_viewer/{uri}") {
         fun createRoute(uri: String) = "image_viewer/${Uri.encode(uri)}"
     }
-
-    data object Profile : MainRoute("profile")
 
     data object Permission : MainRoute("permission")
 

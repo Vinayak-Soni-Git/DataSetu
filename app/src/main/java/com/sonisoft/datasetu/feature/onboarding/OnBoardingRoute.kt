@@ -6,7 +6,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun OnboardingRoute(
-    onNavigateToSignup: () -> Unit,
+    onNavigateToHome: () -> Unit,
     viewModel: OnboardingViewModel = hiltViewModel()
 ) {
 
@@ -16,8 +16,8 @@ fun OnboardingRoute(
 
             when (event) {
 
-                OnboardingEvent.NavigateToSignup -> {
-                    onNavigateToSignup()
+                OnboardingEvent.NavigateToHome -> {
+                    onNavigateToHome()
                 }
             }
         }

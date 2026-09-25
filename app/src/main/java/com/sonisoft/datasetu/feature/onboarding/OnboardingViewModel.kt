@@ -32,9 +32,7 @@ class OnboardingViewModel @Inject constructor(
         _events.asSharedFlow()
 
     fun onGetStartedClicked() {
-
         viewModelScope.launch {
-
             _uiState.update {
                 it.copy(isLoading = true)
             }
@@ -48,7 +46,7 @@ class OnboardingViewModel @Inject constructor(
             }
 
             _events.emit(
-                OnboardingEvent.NavigateToSignup
+                OnboardingEvent.NavigateToHome
             )
         }
     }

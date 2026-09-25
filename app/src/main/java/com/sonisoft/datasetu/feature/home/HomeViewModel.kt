@@ -23,11 +23,6 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            userPreferences.userSession.collect { session ->
-                _uiState.update { it.copy(userName = session.userName) }
-            }
-        }
         loadRecentFiles()
     }
 

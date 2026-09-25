@@ -30,20 +30,10 @@ class ProfileViewModel @Inject constructor(
             userPreferences.userSession.collect { session ->
                 _uiState.update { 
                     it.copy(
-                        userName = session.userName,
                         deviceName = session.deviceName
                     )
                 }
             }
-        }
-    }
-
-    fun onLogoutClick() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            userPreferences.logout()
-            _uiState.update { it.copy(isLoading = false) }
-            _events.emit(ProfileEvent.NavigateToLogin)
         }
     }
 }

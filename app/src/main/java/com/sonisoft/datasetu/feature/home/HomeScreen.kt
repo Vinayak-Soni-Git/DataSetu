@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.CallMade
 import androidx.compose.material.icons.automirrored.rounded.CallReceived
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.WifiFind
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -36,7 +35,6 @@ import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun HomeRoute(
-    onNavigateToProfile: () -> Unit,
     onNavigateToSend: () -> Unit,
     onNavigateToReceive: () -> Unit,
     onNavigateToDiscovery: () -> Unit,
@@ -49,7 +47,6 @@ fun HomeRoute(
 
     HomeScreen(
         uiState = uiState,
-        onNavigateToProfile = onNavigateToProfile,
         onNavigateToSend = onNavigateToSend,
         onNavigateToReceive = onNavigateToReceive,
         onNavigateToDiscovery = onNavigateToDiscovery,
@@ -74,7 +71,6 @@ fun HomeRoute(
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
-    onNavigateToProfile: () -> Unit,
     onNavigateToSend: () -> Unit,
     onNavigateToReceive: () -> Unit,
     onNavigateToDiscovery: () -> Unit,
@@ -104,7 +100,7 @@ fun HomeScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Hello, ${uiState.userName}",
+                            text = "DataSetu",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onBackground
                         )
@@ -112,23 +108,6 @@ fun HomeScreen(
                             text = "Ready to transfer files?",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                },
-                actions = {
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { onNavigateToProfile() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Profile",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
