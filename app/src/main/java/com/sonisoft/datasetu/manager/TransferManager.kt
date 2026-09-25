@@ -1,20 +1,19 @@
 package com.sonisoft.datasetu.manager
 
 import android.content.Context
-import android.net.Uri
 import android.os.Environment
-import android.util.Log
+import com.sonisoft.datasetu.core.util.NetworkUtil
 import com.sonisoft.datasetu.data.remote.transfer.TransferProtocol
 import com.sonisoft.datasetu.data.remote.transfer.TransferSocket
 import com.sonisoft.datasetu.domain.model.FileItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.delay
 import java.io.File
 import java.net.InetSocketAddress
 import java.net.ServerSocket
@@ -41,8 +40,13 @@ class TransferManager @Inject constructor(
 
     suspend fun startServerAndReceiveFiles() = withContext(Dispatchers.IO) {
         try {
-            _transferState.update { it.copy(status = TransferStatus.CONNECTING) }
-            serverSocket = ServerSocket(TransferProtocol.DEFAULT_PORT)
+            closeConnections()
+            _transferState.update { it.copy(status = TransferStatus.CONNECTING, error = null) }
+            
+            serverSocket = ServerSocket().apply {
+                reuseAddress = true
+                bind(InetSocketAddress(TransferProtocol.DEFAULT_PORT))
+            }
             
             val rawSocket = serverSocket!!.accept()
             clientSocket = TransferSocket(rawSocket)
@@ -86,29 +90,44 @@ class TransferManager @Inject constructor(
             
             _transferState.update { it.copy(status = TransferStatus.COMPLETED) }
         } catch (e: Exception) {
-            _transferState.update { it.copy(status = TransferStatus.ERROR, error = e.message) }
+            _transferState.update { it.copy(status = TransferStatus.ERROR, error = e.message ?: "Server transfer failed") }
         } finally {
             closeConnections()
         }
     }
 
-    suspend fun connectAndSendFiles(ipAddress: String, files: List<FileItem>) = withContext(Dispatchers.IO) {
+    suspend fun connectAndSendFiles(rawIpAddress: String, files: List<FileItem>) = withContext(Dispatchers.IO) {
         try {
-            _transferState.update { it.copy(status = TransferStatus.CONNECTING) }
+            closeConnections()
+            _transferState.update { it.copy(status = TransferStatus.CONNECTING, error = null) }
+            
+            val cleanIp = NetworkUtil.extractIpAddress(rawIpAddress)
+            if (cleanIp.isEmpty() || cleanIp == "0.0.0.0") {
+                throw Exception("Invalid IP address: $rawIpAddress")
+            }
+            
+            if (files.isEmpty()) {
+                throw Exception("No files selected to send")
+            }
             
             val rawSocket = Socket()
             var connected = false
             var attempts = 0
+            var lastError: Exception? = null
+            
             while (!connected && attempts < 5) {
                 try {
-                    rawSocket.connect(InetSocketAddress(ipAddress, TransferProtocol.DEFAULT_PORT), 2000)
+                    rawSocket.connect(InetSocketAddress(cleanIp, TransferProtocol.DEFAULT_PORT), 3000)
                     connected = true
                 } catch (e: Exception) {
+                    lastError = e
                     attempts++
                     delay(500)
                 }
             }
-            if (!connected) throw Exception("Failed to connect after retries")
+            if (!connected) {
+                throw Exception("Failed to connect to $cleanIp:${TransferProtocol.DEFAULT_PORT}. ${lastError?.message ?: ""}")
+            }
             
             clientSocket = TransferSocket(rawSocket)
             
@@ -151,7 +170,7 @@ class TransferManager @Inject constructor(
             
             _transferState.update { it.copy(status = TransferStatus.COMPLETED) }
         } catch (e: Exception) {
-            _transferState.update { it.copy(status = TransferStatus.ERROR, error = e.message) }
+            _transferState.update { it.copy(status = TransferStatus.ERROR, error = e.message ?: "Transfer failed") }
         } finally {
             closeConnections()
         }

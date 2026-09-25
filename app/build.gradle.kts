@@ -71,8 +71,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation("androidx.compose.material:material-icons-extended")
 
+    implementation("androidx.compose.material:material-icons-extended")
 
     implementation("androidx.navigation:navigation-compose:2.10.1")
 
@@ -91,17 +91,9 @@ dependencies {
     implementation("com.airbnb.android:lottie-compose:6.7.1")
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-
-    val cameraxVersion = "1.6.2"
-    implementation("androidx.camera:camera-core:$cameraxVersion")
-    implementation("androidx.camera:camera-camera2:$cameraxVersion")
-    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
-    implementation("androidx.camera:camera-view:$cameraxVersion")
-
-    // ML Kit Barcode Scanning
-    implementation("com.google.mlkit:barcode-scanning:17.3.0")
-
-    // ZXing (QR Code Generation)
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
+    
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     implementation("com.google.zxing:core:3.5.4")
 
     testImplementation(libs.junit)

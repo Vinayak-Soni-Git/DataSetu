@@ -10,6 +10,7 @@ import com.sonisoft.datasetu.feature.history.HistoryScreen
 import com.sonisoft.datasetu.feature.home.HomeRoute
 import com.sonisoft.datasetu.feature.profile.ProfileRoute
 import com.sonisoft.datasetu.feature.receive.ReceiveScreen
+import com.sonisoft.datasetu.feature.send.FileSelectionScreen
 import com.sonisoft.datasetu.feature.send.SendScreen
 import com.sonisoft.datasetu.feature.settings.SettingsScreen
 import com.sonisoft.datasetu.feature.storage.FilesListScreen
@@ -25,6 +26,7 @@ fun NavGraphBuilder.mainGraph(navigator: AppNavigator) {
     ) {
         HomeRoute(
             onNavigateToSend = { navigator.navigateToSend() },
+            onNavigateToFileSelection = { navigator.navigateToFileSelection() },
             onNavigateToReceive = { navigator.navigateToReceive() },
             onNavigateToDiscovery = { navigator.navigateToDiscovery() },
             onNavigateToHistory = { navigator.navigateToHistory() },
@@ -81,9 +83,21 @@ fun NavGraphBuilder.mainGraph(navigator: AppNavigator) {
     }
 
     composable(
+        route = MainRoute.FileSelection.route
+    ) {
+        FileSelectionScreen(
+            onNavigateBack = { navigator.popBack() },
+            onProceedToSend = { navigator.navigateToSend() }
+        )
+    }
+
+    composable(
         route = MainRoute.Send.route
     ) {
-        SendScreen({ navigator.popBack() })
+        SendScreen(
+            onNavigateBack = { navigator.popBack() },
+            onNavigateToFileSelection = { navigator.navigateToFileSelection() }
+        )
     }
 
     composable(

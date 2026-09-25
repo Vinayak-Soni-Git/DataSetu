@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.sonisoft.datasetu.core.datastore.UserPreferences
 import com.sonisoft.datasetu.domain.model.FileItem
 import com.sonisoft.datasetu.domain.usecase.storage.GetRecentFilesUseCase
+import com.sonisoft.datasetu.manager.TransferManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val userPreferences: UserPreferences,
-    private val getRecentFilesUseCase: GetRecentFilesUseCase
+    private val getRecentFilesUseCase: GetRecentFilesUseCase,
+    private val transferManager: TransferManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -53,5 +55,10 @@ class HomeViewModel @Inject constructor(
 
     fun clearSelection() {
         _uiState.update { it.copy(selectedFiles = emptySet()) }
+    }
+
+    fun setFilesToSendAndProceed(onProceed: () -> Unit) {
+        transferManager.filesToSend = _uiState.value.selectedFiles.toList()
+        onProceed()
     }
 }

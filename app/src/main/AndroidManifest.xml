@@ -44,10 +44,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DataSetu">
 
-        <!-- ML Kit Barcode Model -->
-        <meta-data
-            android:name="com.google.mlkit.vision.DEPENDENCIES"
-            android:value="barcode" />
+
 
         <activity
             android:name=".MainActivity"

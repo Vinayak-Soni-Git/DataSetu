@@ -15,7 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.zxing.BarcodeFormat
-import com.google.zxing.qrcode.QRCodeWriter
+import com.journeyapps.barcodescanner.BarcodeEncoder
 import com.sonisoft.datasetu.manager.TransferStatus
 
 import com.sonisoft.datasetu.feature.transfer.components.ModernTransferUI
@@ -51,7 +51,7 @@ fun ReceiveScreen(
             Spacer(modifier = Modifier.height(48.dp))
 
             if (uiState.qrContent.isNotEmpty()) {
-                val bitmap = generateQrCode(uiState.qrContent)
+                val bitmap = remember(uiState.qrContent) { generateQrCode(uiState.qrContent) }
                 if (bitmap != null) {
                     Image(
                         bitmap = bitmap.asImageBitmap(),
@@ -80,20 +80,11 @@ fun ReceiveScreen(
 }
 
 fun generateQrCode(content: String): Bitmap? {
-    try {
-        val writer = QRCodeWriter()
-        val bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, 512, 512)
-        val width = bitMatrix.width
-        val height = bitMatrix.height
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
-        for (x in 0 until width) {
-            for (y in 0 until height) {
-                bitmap.setPixel(x, y, if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
-            }
-        }
-        return bitmap
+    return try {
+        val barcodeEncoder = BarcodeEncoder()
+        barcodeEncoder.encodeBitmap(content, BarcodeFormat.QR_CODE, 512, 512)
     } catch (e: Exception) {
         e.printStackTrace()
-        return null
+        null
     }
 }

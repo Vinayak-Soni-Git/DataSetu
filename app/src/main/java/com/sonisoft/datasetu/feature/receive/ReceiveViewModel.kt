@@ -1,18 +1,18 @@
 package com.sonisoft.datasetu.feature.receive
 
 import android.content.Context
-import android.net.wifi.WifiManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sonisoft.datasetu.manager.TransferManager
-import com.sonisoft.datasetu.manager.DeviceDiscoveryManager
 import com.sonisoft.datasetu.core.datastore.UserPreferences
-import kotlinx.coroutines.flow.first
+import com.sonisoft.datasetu.core.util.NetworkUtil
+import com.sonisoft.datasetu.manager.DeviceDiscoveryManager
+import com.sonisoft.datasetu.manager.TransferManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -57,15 +57,7 @@ class ReceiveViewModel @Inject constructor(
     }
 
     private fun generateQrCodeContent() {
-        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        val ipAddress = wifiManager.connectionInfo.ipAddress
-        val ipString = String.format(
-            "%d.%d.%d.%d",
-            ipAddress and 0xff,
-            ipAddress shr 8 and 0xff,
-            ipAddress shr 16 and 0xff,
-            ipAddress shr 24 and 0xff
-        )
+        val ipString = NetworkUtil.getLocalIpAddress(context)
         _uiState.update { it.copy(qrContent = ipString) }
     }
 

@@ -1,11 +1,12 @@
 package com.sonisoft.datasetu.feature.send
 
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sonisoft.datasetu.manager.TransferManager
+import com.sonisoft.datasetu.core.util.NetworkUtil
+import com.sonisoft.datasetu.domain.model.FileItem
 import com.sonisoft.datasetu.manager.DeviceDiscoveryManager
 import com.sonisoft.datasetu.manager.DiscoveredDevice
+import com.sonisoft.datasetu.manager.TransferManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,10 +27,16 @@ class SendViewModel @Inject constructor(
     val transferState = transferManager.transferState
     val discoveredDevices = discoveryManager.discoveredDevices
     
-    private val filesToSend = transferManager.filesToSend
+    val filesToSend: List<FileItem>
+        get() = transferManager.filesToSend
 
     init {
         discoveryManager.startDiscovery()
+        updateFilesCount()
+    }
+
+    fun updateFilesCount() {
+        _uiState.update { it.copy(selectedFilesCount = filesToSend.size) }
     }
 
     override fun onCleared() {
@@ -37,20 +44,32 @@ class SendViewModel @Inject constructor(
         super.onCleared()
     }
 
-    fun onQrScanned(ipAddress: String) {
-        if (filesToSend.isNotEmpty() && ipAddress.isNotEmpty()) {
-            _uiState.update { it.copy(scannedIp = ipAddress, isScanning = false) }
+    fun onQrScanned(rawIpAddress: String) {
+        val cleanIp = NetworkUtil.extractIpAddress(rawIpAddress)
+        if (cleanIp.isEmpty() || cleanIp == "0.0.0.0") return
+
+        _uiState.update { it.copy(scannedIp = cleanIp, isScanning = false) }
+
+        if (filesToSend.isNotEmpty()) {
             viewModelScope.launch {
-                transferManager.connectAndSendFiles(ipAddress, filesToSend)
+                transferManager.connectAndSendFiles(cleanIp, filesToSend)
             }
+        } else {
+            _uiState.update { it.copy(requiresFileSelection = true) }
         }
     }
 
     fun connectToDevice(device: DiscoveredDevice) {
-        if (filesToSend.isNotEmpty()) {
-            _uiState.update { it.copy(scannedIp = device.ipAddress, isScanning = false) }
+        onQrScanned(device.ipAddress)
+    }
+
+    fun onFilesSelectedAndProceed() {
+        updateFilesCount()
+        val currentIp = _uiState.value.scannedIp
+        if (currentIp.isNotEmpty() && filesToSend.isNotEmpty()) {
+            _uiState.update { it.copy(requiresFileSelection = false) }
             viewModelScope.launch {
-                transferManager.connectAndSendFiles(device.ipAddress, filesToSend)
+                transferManager.connectAndSendFiles(currentIp, filesToSend)
             }
         }
     }
@@ -63,5 +82,7 @@ class SendViewModel @Inject constructor(
 
 data class SendUiState(
     val scannedIp: String = "",
-    val isScanning: Boolean = true
+    val isScanning: Boolean = true,
+    val selectedFilesCount: Int = 0,
+    val requiresFileSelection: Boolean = false
 )
