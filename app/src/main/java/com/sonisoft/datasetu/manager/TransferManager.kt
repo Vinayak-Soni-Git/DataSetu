@@ -20,6 +20,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class TransferManager @Inject constructor(
@@ -27,9 +28,9 @@ class TransferManager @Inject constructor(
 ) {
     private var serverSocket: ServerSocket? = null
     private var clientSocket: TransferSocket? = null
-    
+
     var filesToSend: List<FileItem> = emptyList()
-    
+
     private val _transferState = MutableStateFlow(TransferState())
     val transferState: StateFlow<TransferState> = _transferState.asStateFlow()
 
@@ -42,17 +43,18 @@ class TransferManager @Inject constructor(
         try {
             closeConnections()
             _transferState.update { it.copy(status = TransferStatus.CONNECTING, error = null) }
-            
+
             serverSocket = ServerSocket().apply {
                 reuseAddress = true
                 bind(InetSocketAddress(TransferProtocol.DEFAULT_PORT))
             }
-            
+
             val rawSocket = serverSocket!!.accept()
             clientSocket = TransferSocket(rawSocket)
             _transferState.update { it.copy(status = TransferStatus.TRANSFERRING) }
 
-            val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val downloadDir =
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val datasetuDir = File(downloadDir, "DataSetu").apply { mkdirs() }
 
             val manifest = TransferProtocol.receiveManifest(clientSocket!!)
@@ -62,18 +64,26 @@ class TransferManager @Inject constructor(
             var globalBytesTransferred = 0L
             val transferredFilesList = mutableListOf<String>()
 
-            _transferState.update { it.copy(totalFiles = totalFiles, totalBytes = totalGlobalBytes) }
+            _transferState.update {
+                it.copy(
+                    totalFiles = totalFiles,
+                    totalBytes = totalGlobalBytes
+                )
+            }
 
             while (clientSocket?.isConnected == true) {
                 var currentFileName = ""
                 var fileBytesReceived = 0L
-                val success = TransferProtocol.receiveFile(clientSocket!!, datasetuDir) { bytesReceived, speed, fileName ->
+                val success = TransferProtocol.receiveFile(
+                    clientSocket!!,
+                    datasetuDir
+                ) { bytesReceived, speed, fileName ->
                     currentFileName = fileName
                     val increment = bytesReceived - fileBytesReceived
                     fileBytesReceived = bytesReceived
                     globalBytesTransferred += increment
-                    
-                    _transferState.update { 
+
+                    _transferState.update {
                         it.copy(
                             bytesTransferred = globalBytesTransferred.coerceAtMost(it.totalBytes),
                             currentFileName = fileName,
@@ -82,115 +92,149 @@ class TransferManager @Inject constructor(
                     }
                 }
                 if (!success) break
-                
+
                 filesTransferred++
                 transferredFilesList.add(currentFileName)
-                _transferState.update { it.copy(filesTransferred = filesTransferred, transferredFiles = transferredFilesList) }
+                _transferState.update {
+                    it.copy(
+                        filesTransferred = filesTransferred,
+                        transferredFiles = transferredFilesList
+                    )
+                }
             }
-            
-            _transferState.update { 
+
+            _transferState.update {
                 it.copy(
                     status = TransferStatus.COMPLETED,
                     bytesTransferred = it.totalBytes,
                     currentSpeedBytesPerSec = 0
-                ) 
+                )
             }
         } catch (e: Exception) {
-            _transferState.update { it.copy(status = TransferStatus.ERROR, error = e.message ?: "Server transfer failed") }
+            _transferState.update {
+                it.copy(
+                    status = TransferStatus.ERROR,
+                    error = e.message ?: "Server transfer failed"
+                )
+            }
         } finally {
             closeConnections()
         }
     }
 
-    suspend fun connectAndSendFiles(rawIpAddress: String, files: List<FileItem>) = withContext(Dispatchers.IO) {
-        try {
-            closeConnections()
-            _transferState.update { it.copy(status = TransferStatus.CONNECTING, error = null) }
-            
-            val cleanIp = NetworkUtil.extractIpAddress(rawIpAddress)
-            if (cleanIp.isEmpty() || cleanIp == "0.0.0.0") {
-                throw Exception("Invalid IP address: $rawIpAddress")
-            }
-            
-            if (files.isEmpty()) {
-                throw Exception("No files selected to send")
-            }
-            
-            val rawSocket = Socket()
-            var connected = false
-            var attempts = 0
-            var lastError: Exception? = null
-            
-            while (!connected && attempts < 5) {
-                try {
-                    rawSocket.connect(InetSocketAddress(cleanIp, TransferProtocol.DEFAULT_PORT), 3000)
-                    connected = true
-                } catch (e: Exception) {
-                    lastError = e
-                    attempts++
-                    delay(500)
+    suspend fun connectAndSendFiles(rawIpAddress: String, files: List<FileItem>) =
+        withContext(Dispatchers.IO) {
+            try {
+                closeConnections()
+                _transferState.update { it.copy(status = TransferStatus.CONNECTING, error = null) }
+
+                val cleanIp = NetworkUtil.extractIpAddress(rawIpAddress)
+                if (cleanIp.isEmpty() || cleanIp == "0.0.0.0") {
+                    throw Exception("Invalid IP address: $rawIpAddress")
                 }
-            }
-            if (!connected) {
-                throw Exception("Failed to connect to $cleanIp:${TransferProtocol.DEFAULT_PORT}. ${lastError?.message ?: ""}")
-            }
-            
-            clientSocket = TransferSocket(rawSocket)
-            
-            val totalBytes = files.sumOf { it.sizeBytes }
-            _transferState.update { 
-                it.copy(
-                    status = TransferStatus.TRANSFERRING,
-                    totalFiles = files.size,
-                    totalBytes = totalBytes
-                ) 
-            }
 
-            TransferProtocol.sendManifest(clientSocket!!, files.size, totalBytes)
+                if (files.isEmpty()) {
+                    throw Exception("No files selected to send")
+                }
 
-            var globalBytesSent = 0L
-            var filesTransferred = 0
-            val transferredFilesList = mutableListOf<String>()
+                val rawSocket = Socket()
+                var connected = false
+                var attempts = 0
+                var lastError: Exception? = null
 
-            for (fileItem in files) {
-                var fileBytesSent = 0L
-                TransferProtocol.sendFile(context, clientSocket!!, fileItem) { bytesSent, speed ->
-                    val increment = bytesSent - fileBytesSent
-                    fileBytesSent = bytesSent
-                    globalBytesSent += increment
-                    
-                    _transferState.update { 
+                while (!connected && attempts < 5) {
+                    try {
+                        rawSocket.connect(
+                            InetSocketAddress(cleanIp, TransferProtocol.DEFAULT_PORT),
+                            3000
+                        )
+                        connected = true
+                    } catch (e: Exception) {
+                        lastError = e
+                        attempts++
+                        delay(500.milliseconds)
+                    }
+                }
+                if (!connected) {
+                    throw Exception("Failed to connect to $cleanIp:${TransferProtocol.DEFAULT_PORT}. ${lastError?.message ?: ""}")
+                }
+
+                clientSocket = TransferSocket(rawSocket)
+
+                val totalBytes = files.sumOf { it.sizeBytes }
+                _transferState.update {
+                    it.copy(
+                        status = TransferStatus.TRANSFERRING,
+                        totalFiles = files.size,
+                        totalBytes = totalBytes
+                    )
+                }
+
+                TransferProtocol.sendManifest(clientSocket!!, files.size, totalBytes)
+
+                var globalBytesSent = 0L
+                var filesTransferred = 0
+                val transferredFilesList = mutableListOf<String>()
+
+                for (fileItem in files) {
+                    var fileBytesSent = 0L
+                    TransferProtocol.sendFile(
+                        context,
+                        clientSocket!!,
+                        fileItem
+                    ) { bytesSent, speed ->
+                        val increment = bytesSent - fileBytesSent
+                        fileBytesSent = bytesSent
+                        globalBytesSent += increment
+
+                        _transferState.update {
+                            it.copy(
+                                bytesTransferred = globalBytesSent.coerceAtMost(it.totalBytes),
+                                currentFileName = fileItem.name,
+                                currentSpeedBytesPerSec = speed
+                            )
+                        }
+                    }
+                    filesTransferred++
+                    transferredFilesList.add(fileItem.name)
+                    _transferState.update {
                         it.copy(
-                            bytesTransferred = globalBytesSent.coerceAtMost(it.totalBytes),
-                            currentFileName = fileItem.name,
-                            currentSpeedBytesPerSec = speed
+                            filesTransferred = filesTransferred,
+                            transferredFiles = transferredFilesList
                         )
                     }
                 }
-                filesTransferred++
-                transferredFilesList.add(fileItem.name)
-                _transferState.update { it.copy(filesTransferred = filesTransferred, transferredFiles = transferredFilesList) }
+
+                TransferProtocol.sendEndAll(clientSocket!!)
+
+                _transferState.update {
+                    it.copy(
+                        status = TransferStatus.COMPLETED,
+                        bytesTransferred = totalBytes,
+                        currentSpeedBytesPerSec = 0
+                    )
+                }
+            } catch (e: Exception) {
+                _transferState.update {
+                    it.copy(
+                        status = TransferStatus.ERROR,
+                        error = e.message ?: "Transfer failed"
+                    )
+                }
+            } finally {
+                closeConnections()
             }
-            
-            TransferProtocol.sendEndAll(clientSocket!!)
-            
-            _transferState.update { 
-                it.copy(
-                    status = TransferStatus.COMPLETED,
-                    bytesTransferred = totalBytes,
-                    currentSpeedBytesPerSec = 0
-                ) 
-            }
-        } catch (e: Exception) {
-            _transferState.update { it.copy(status = TransferStatus.ERROR, error = e.message ?: "Transfer failed") }
-        } finally {
-            closeConnections()
         }
-    }
 
     private fun closeConnections() {
-        try { clientSocket?.close() } catch (e: Exception) {}
-        try { serverSocket?.close() } catch (e: Exception) {}
+        try {
+            clientSocket?.close()
+        } catch (e: Exception) {
+        }
+        try {
+            serverSocket?.close()
+        } catch (e: Exception) {
+        }
         clientSocket = null
         serverSocket = null
     }

@@ -142,7 +142,7 @@ fun FileListItem(
         ) {
             
             // Thumbnail or Icon
-            if (category == StorageCategory.IMAGES || category == StorageCategory.VIDEOS) {
+            if (fileItem.mimeType.startsWith("image/") || fileItem.mimeType.startsWith("video/")) {
                 AsyncImage(
                     model = fileItem.uri,
                     contentDescription = fileItem.name,
