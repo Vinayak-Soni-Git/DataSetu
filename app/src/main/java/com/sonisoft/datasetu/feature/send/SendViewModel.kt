@@ -46,9 +46,14 @@ class SendViewModel @Inject constructor(
 
     fun onQrScanned(rawIpAddress: String) {
         val cleanIp = NetworkUtil.extractIpAddress(rawIpAddress)
-        if (cleanIp.isEmpty() || cleanIp == "0.0.0.0") return
+        if (cleanIp.isEmpty() || cleanIp == "0.0.0.0") {
+            _uiState.update { 
+                it.copy(errorMessage = "Invalid IP address ($rawIpAddress). Make sure Receiver device is connected to Wi-Fi.")
+            }
+            return
+        }
 
-        _uiState.update { it.copy(scannedIp = cleanIp, isScanning = false) }
+        _uiState.update { it.copy(scannedIp = cleanIp, isScanning = false, errorMessage = null) }
 
         if (filesToSend.isNotEmpty()) {
             viewModelScope.launch {
@@ -74,6 +79,10 @@ class SendViewModel @Inject constructor(
         }
     }
 
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
     fun resetAndSendMore(onNavigateBack: () -> Unit) {
         transferManager.resetState()
         onNavigateBack()
@@ -84,5 +93,6 @@ data class SendUiState(
     val scannedIp: String = "",
     val isScanning: Boolean = true,
     val selectedFilesCount: Int = 0,
-    val requiresFileSelection: Boolean = false
+    val requiresFileSelection: Boolean = false,
+    val errorMessage: String? = null
 )

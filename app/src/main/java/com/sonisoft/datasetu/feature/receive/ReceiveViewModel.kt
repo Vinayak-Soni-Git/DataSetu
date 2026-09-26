@@ -7,6 +7,7 @@ import com.sonisoft.datasetu.core.datastore.UserPreferences
 import com.sonisoft.datasetu.core.util.NetworkUtil
 import com.sonisoft.datasetu.manager.DeviceDiscoveryManager
 import com.sonisoft.datasetu.manager.TransferManager
+import com.sonisoft.datasetu.manager.TransferStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,9 +32,7 @@ class ReceiveViewModel @Inject constructor(
     val transferState = transferManager.transferState
 
     init {
-        generateQrCodeContent()
-        startServer()
-        startBroadcasting()
+        refreshQrCodeAndServer()
     }
 
     private fun startBroadcasting() {
@@ -44,11 +43,17 @@ class ReceiveViewModel @Inject constructor(
         }
     }
 
+    fun refreshQrCodeAndServer() {
+        generateQrCodeContent()
+        if (transferState.value.status == TransferStatus.IDLE || transferState.value.status == TransferStatus.ERROR) {
+            startServer()
+            startBroadcasting()
+        }
+    }
+
     fun resetAndReceiveMore() {
         transferManager.resetState()
-        generateQrCodeContent()
-        startServer()
-        startBroadcasting()
+        refreshQrCodeAndServer()
     }
 
     override fun onCleared() {

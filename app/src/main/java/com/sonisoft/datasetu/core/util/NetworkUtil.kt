@@ -8,8 +8,15 @@ import java.net.NetworkInterface
 object NetworkUtil {
 
     fun getLocalIpAddress(context: Context): String {
+        // 1. Try WifiManager first for active Wi-Fi connection
+        val wifiIp = getWifiManagerIp(context)
+        if (wifiIp.isNotEmpty() && wifiIp != "0.0.0.0") {
+            return wifiIp
+        }
+
+        // 2. Iterate NetworkInterfaces (for Wi-Fi Direct, Hotspot, AP, or Ethernet)
         try {
-            val interfaces = NetworkInterface.getNetworkInterfaces() ?: return getWifiManagerIp(context)
+            val interfaces = NetworkInterface.getNetworkInterfaces() ?: return "0.0.0.0"
             for (networkInterface in interfaces.toList()) {
                 if (!networkInterface.isUp || networkInterface.isLoopback) continue
 
@@ -18,7 +25,7 @@ object NetworkUtil {
                     if (!inetAddress.isLoopbackAddress && inetAddress is Inet4Address) {
                         val hostAddress = inetAddress.hostAddress
                         if (!hostAddress.isNullOrEmpty() && hostAddress != "127.0.0.1" && hostAddress != "0.0.0.0") {
-                            if (interfaceName.contains("wlan") || interfaceName.contains("p2p") || interfaceName.contains("ap") || interfaceName.contains("eth")) {
+                            if (interfaceName.contains("wlan") || interfaceName.contains("p2p") || interfaceName.contains("ap") || interfaceName.contains("swlan") || interfaceName.contains("eth")) {
                                 return hostAddress
                             }
                         }
@@ -26,6 +33,7 @@ object NetworkUtil {
                 }
             }
 
+            // 3. Fallback to any valid non-loopback IPv4 address
             for (networkInterface in interfaces.toList()) {
                 if (!networkInterface.isUp || networkInterface.isLoopback) continue
                 for (inetAddress in networkInterface.inetAddresses.toList()) {
@@ -41,7 +49,7 @@ object NetworkUtil {
             e.printStackTrace()
         }
 
-        return getWifiManagerIp(context)
+        return "0.0.0.0"
     }
 
     private fun getWifiManagerIp(context: Context): String {

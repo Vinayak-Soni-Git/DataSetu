@@ -75,7 +75,7 @@ class TransferManager @Inject constructor(
                     
                     _transferState.update { 
                         it.copy(
-                            bytesTransferred = globalBytesTransferred,
+                            bytesTransferred = globalBytesTransferred.coerceAtMost(it.totalBytes),
                             currentFileName = fileName,
                             currentSpeedBytesPerSec = speed
                         )
@@ -88,7 +88,13 @@ class TransferManager @Inject constructor(
                 _transferState.update { it.copy(filesTransferred = filesTransferred, transferredFiles = transferredFilesList) }
             }
             
-            _transferState.update { it.copy(status = TransferStatus.COMPLETED) }
+            _transferState.update { 
+                it.copy(
+                    status = TransferStatus.COMPLETED,
+                    bytesTransferred = it.totalBytes,
+                    currentSpeedBytesPerSec = 0
+                ) 
+            }
         } catch (e: Exception) {
             _transferState.update { it.copy(status = TransferStatus.ERROR, error = e.message ?: "Server transfer failed") }
         } finally {
@@ -155,7 +161,7 @@ class TransferManager @Inject constructor(
                     
                     _transferState.update { 
                         it.copy(
-                            bytesTransferred = globalBytesSent,
+                            bytesTransferred = globalBytesSent.coerceAtMost(it.totalBytes),
                             currentFileName = fileItem.name,
                             currentSpeedBytesPerSec = speed
                         )
@@ -168,7 +174,13 @@ class TransferManager @Inject constructor(
             
             TransferProtocol.sendEndAll(clientSocket!!)
             
-            _transferState.update { it.copy(status = TransferStatus.COMPLETED) }
+            _transferState.update { 
+                it.copy(
+                    status = TransferStatus.COMPLETED,
+                    bytesTransferred = totalBytes,
+                    currentSpeedBytesPerSec = 0
+                ) 
+            }
         } catch (e: Exception) {
             _transferState.update { it.copy(status = TransferStatus.ERROR, error = e.message ?: "Transfer failed") }
         } finally {

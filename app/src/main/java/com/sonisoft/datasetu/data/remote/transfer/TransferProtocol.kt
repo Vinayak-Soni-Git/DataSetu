@@ -48,7 +48,7 @@ object TransferProtocol {
         // Send file data
         dataOut.writeInt(CMD_FILE_DATA)
         val fileIn = context.contentResolver.openInputStream(fileItem.uri) ?: return
-        val buffer = ByteArray(64 * 1024) // 64KB for faster transfer
+        val buffer = ByteArray(64 * 1024) // 64KB
         var bytesRead: Int
         var totalBytesSent = 0L
         var bytesSinceLast = 0L
@@ -61,7 +61,7 @@ object TransferProtocol {
             
             val now = System.currentTimeMillis()
             val timeDiff = now - lastTime
-            if (timeDiff >= 200) { // Update speed ~5 times a sec
+            if (timeDiff >= 150) { // Update ~6-7 times a sec
                 val speed = (bytesSinceLast * 1000) / timeDiff
                 onProgress(totalBytesSent, speed)
                 lastTime = now
@@ -70,6 +70,12 @@ object TransferProtocol {
         }
         fileIn.close()
         
+        // Final progress report for this file
+        val now = System.currentTimeMillis()
+        val timeDiff = now - lastTime
+        val speed = if (timeDiff > 0) (bytesSinceLast * 1000) / timeDiff else 0L
+        onProgress(fileItem.sizeBytes, speed)
+
         // End transfer
         dataOut.writeInt(CMD_END_TRANSFER)
         dataOut.flush()
@@ -112,7 +118,7 @@ object TransferProtocol {
                         
                         val now = System.currentTimeMillis()
                         val timeDiff = now - lastTime
-                        if (timeDiff >= 200) {
+                        if (timeDiff >= 150) {
                             val speed = (bytesSinceLast * 1000) / timeDiff
                             onProgress(totalBytesReceived, speed, fileName)
                             lastTime = now
@@ -121,6 +127,12 @@ object TransferProtocol {
                     }
                     fileOut.close()
                     
+                    // Final progress report for this file
+                    val now = System.currentTimeMillis()
+                    val timeDiff = now - lastTime
+                    val speed = if (timeDiff > 0) (bytesSinceLast * 1000) / timeDiff else 0L
+                    onProgress(fileSize, speed, fileName)
+
                     if (dataIn.readInt() == CMD_END_TRANSFER) {
                         return true
                     }
