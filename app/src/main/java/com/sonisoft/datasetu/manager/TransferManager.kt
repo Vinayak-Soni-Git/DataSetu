@@ -1,11 +1,13 @@
 package com.sonisoft.datasetu.manager
 
 import android.content.Context
+import android.content.Intent
 import android.os.Environment
 import com.sonisoft.datasetu.core.util.NetworkUtil
 import com.sonisoft.datasetu.data.remote.transfer.TransferProtocol
 import com.sonisoft.datasetu.data.remote.transfer.TransferSocket
 import com.sonisoft.datasetu.domain.model.FileItem
+import com.sonisoft.datasetu.service.TransferForegroundService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -42,6 +44,7 @@ class TransferManager @Inject constructor(
     suspend fun startServerAndReceiveFiles() = withContext(Dispatchers.IO) {
         try {
             closeConnections()
+            startTransferService()
             _transferState.update { it.copy(status = TransferStatus.CONNECTING, error = null) }
 
             serverSocket = ServerSocket().apply {
@@ -119,6 +122,7 @@ class TransferManager @Inject constructor(
             }
         } finally {
             closeConnections()
+            stopTransferService()
         }
     }
 
@@ -126,6 +130,7 @@ class TransferManager @Inject constructor(
         withContext(Dispatchers.IO) {
             try {
                 closeConnections()
+                startTransferService()
                 _transferState.update { it.copy(status = TransferStatus.CONNECTING, error = null) }
 
                 val cleanIp = NetworkUtil.extractIpAddress(rawIpAddress)
@@ -223,6 +228,7 @@ class TransferManager @Inject constructor(
                 }
             } finally {
                 closeConnections()
+                stopTransferService()
             }
         }
 
@@ -237,6 +243,18 @@ class TransferManager @Inject constructor(
         }
         clientSocket = null
         serverSocket = null
+    }
+    
+    private fun startTransferService() {
+        val intent = Intent(context, TransferForegroundService::class.java)
+        context.startForegroundService(intent)
+    }
+    
+    private fun stopTransferService() {
+        val intent = Intent(context, TransferForegroundService::class.java).apply {
+            action = TransferForegroundService.ACTION_STOP
+        }
+        context.startService(intent)
     }
 }
 

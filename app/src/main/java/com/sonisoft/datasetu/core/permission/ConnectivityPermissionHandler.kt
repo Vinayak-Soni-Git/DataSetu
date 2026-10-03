@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 
 @Composable
 fun ConnectivityPermissionHandler(
@@ -49,13 +50,15 @@ fun ConnectivityPermissionHandler(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.CAMERA
         )
+
+        permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
+        permissions.add(Manifest.permission.BLUETOOTH_ADVERTISE)
+        permissions.add(Manifest.permission.BLUETOOTH_SCAN)
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
-            permissions.add(Manifest.permission.BLUETOOTH_ADVERTISE)
-            permissions.add(Manifest.permission.BLUETOOTH_SCAN)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
         }
-        
+
         permissions.toTypedArray()
     }
 
@@ -104,7 +107,7 @@ fun ConnectivityPermissionHandler(
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(
-                text = "To discover nearby devices and transfer files at high speed, DataSetu requires Location and Bluetooth permissions. Camera is required to scan QR codes.",
+                text = "To discover nearby devices and transfer files at high speed, DataSetu requires Location and Bluetooth permissions. Camera is required to scan QR codes. Notifications are needed to show transfer progress in the background.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.secondary,
                 textAlign = TextAlign.Center
@@ -115,7 +118,7 @@ fun ConnectivityPermissionHandler(
             Button(
                 onClick = {
                     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.parse("package:${context.packageName}")
+                        data = "package:${context.packageName}".toUri()
                     }
                     context.startActivity(intent)
                 },
