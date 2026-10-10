@@ -2,6 +2,7 @@ package com.sonisoft.datasetu.feature.storage
 
 import android.text.format.Formatter
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -122,17 +123,23 @@ fun FilesListScreen(
 fun FileListItem(
     fileItem: FileItem,
     category: StorageCategory?,
-    onClick: () -> Unit = {}
+    onClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val dateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
 
+    val baseModifier = Modifier.fillMaxWidth()
+    val modifier = if (onClick != null) {
+        baseModifier.clickable { onClick() }
+    } else {
+        baseModifier
+    }
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        onClick = onClick
+        contentColor = MaterialTheme.colorScheme.onSurface
     ) {
         Row(
             modifier = Modifier

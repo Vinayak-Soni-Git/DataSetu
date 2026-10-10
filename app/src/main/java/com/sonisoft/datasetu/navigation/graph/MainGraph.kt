@@ -59,7 +59,11 @@ fun NavGraphBuilder.mainGraph(navigator: AppNavigator) {
 
     composable(
         route = MainRoute.ImageViewer.route,
-        arguments = listOf(navArgument("uri") { type = NavType.StringType })
+        arguments = listOf(navArgument("uri") { 
+            type = NavType.StringType
+            nullable = true
+            defaultValue = null
+        })
     ) { backStackEntry ->
         val uri = backStackEntry.arguments?.getString("uri") ?: ""
         ImageViewerScreen(

@@ -73,6 +73,15 @@ class SendViewModel @Inject constructor(
         val currentIp = _uiState.value.scannedIp
         if (currentIp.isNotEmpty() && filesToSend.isNotEmpty()) {
             _uiState.update { it.copy(requiresFileSelection = false) }
+            
+            // Do not restart if already transferring or completed
+            val currentStatus = transferState.value.status
+            if (currentStatus == com.sonisoft.datasetu.manager.TransferStatus.TRANSFERRING || 
+                currentStatus == com.sonisoft.datasetu.manager.TransferStatus.CONNECTING ||
+                currentStatus == com.sonisoft.datasetu.manager.TransferStatus.COMPLETED) {
+                return
+            }
+
             viewModelScope.launch {
                 transferManager.connectAndSendFiles(currentIp, filesToSend)
             }

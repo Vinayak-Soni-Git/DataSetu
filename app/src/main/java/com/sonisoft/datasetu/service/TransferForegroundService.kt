@@ -4,6 +4,8 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.content.pm.ServiceInfo
+import android.net.wifi.WifiManager
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.ServiceCompat
 import com.sonisoft.datasetu.manager.TransferManager
@@ -25,18 +27,30 @@ class TransferForegroundService : Service() {
 
     private lateinit var notificationManager: TransferNotificationManager
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var wifiLock: WifiManager.WifiLock? = null
 
     override fun onCreate() {
         super.onCreate()
         notificationManager = TransferNotificationManager(this)
+        
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DataSetu:TransferWakeLock")
+        
+        val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
+        wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "DataSetu:TransferWifiLock")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action
         if (action == ACTION_STOP) {
+            releaseLocks()
             stopSelf()
             return START_NOT_STICKY
         }
+        
+        acquireLocks()
 
         val initialNotification = notificationManager.getNotification(
             title = "Transfer Starting",
@@ -60,6 +74,24 @@ class TransferForegroundService : Service() {
         observeTransferState()
 
         return START_STICKY
+    }
+
+    private fun acquireLocks() {
+        if (wakeLock?.isHeld == false) {
+            wakeLock?.acquire(10 * 60 * 1000L /*10 minutes*/)
+        }
+        if (wifiLock?.isHeld == false) {
+            wifiLock?.acquire()
+        }
+    }
+
+    private fun releaseLocks() {
+        if (wakeLock?.isHeld == true) {
+            wakeLock?.release()
+        }
+        if (wifiLock?.isHeld == true) {
+            wifiLock?.release()
+        }
     }
 
     private fun observeTransferState() {
@@ -94,6 +126,7 @@ class TransferForegroundService : Service() {
                         )
                     }
                     TransferStatus.COMPLETED, TransferStatus.ERROR, TransferStatus.IDLE -> {
+                        releaseLocks()
                         stopForeground(STOP_FOREGROUND_REMOVE)
                         stopSelf()
                     }
@@ -104,6 +137,7 @@ class TransferForegroundService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        releaseLocks()
         serviceScope.cancel()
     }
 

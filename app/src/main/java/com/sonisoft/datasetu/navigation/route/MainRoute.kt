@@ -16,8 +16,8 @@ sealed class MainRoute(
         fun createRoute(categoryName: String) = "files_list/$categoryName"
     }
 
-    data object ImageViewer : MainRoute("image_viewer/{uri}") {
-        fun createRoute(uri: String) = "image_viewer/${Uri.encode(uri)}"
+    data object ImageViewer : MainRoute("image_viewer?uri={uri}") {
+        fun createRoute(uri: String) = "image_viewer?uri=${Uri.encode(uri)}"
     }
 
     data object Permission : MainRoute("permission")

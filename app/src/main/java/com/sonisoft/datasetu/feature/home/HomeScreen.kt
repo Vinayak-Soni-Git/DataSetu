@@ -193,7 +193,7 @@ fun HomeScreen(
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
             }
 
@@ -235,7 +235,7 @@ fun SelectableFileItem(
             modifier = Modifier.padding(end = 8.dp)
         ) {
             Box(modifier = Modifier.weight(1f)) {
-                FileListItem(fileItem = fileItem, category = null)
+                FileListItem(fileItem = fileItem, category = null, onClick = null)
             }
             if (isSelected) {
                 Icon(

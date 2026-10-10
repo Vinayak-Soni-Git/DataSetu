@@ -2,19 +2,25 @@ package com.sonisoft.datasetu.manager
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Environment
+import android.os.PowerManager
+import android.net.wifi.WifiManager
 import com.sonisoft.datasetu.core.util.NetworkUtil
 import com.sonisoft.datasetu.data.remote.transfer.TransferProtocol
 import com.sonisoft.datasetu.data.remote.transfer.TransferSocket
 import com.sonisoft.datasetu.domain.model.FileItem
 import com.sonisoft.datasetu.service.TransferForegroundService
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.InetSocketAddress
@@ -28,6 +34,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class TransferManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    private val transferScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var serverSocket: ServerSocket? = null
     private var clientSocket: TransferSocket? = null
 
@@ -41,11 +48,12 @@ class TransferManager @Inject constructor(
         closeConnections()
     }
 
-    suspend fun startServerAndReceiveFiles() = withContext(Dispatchers.IO) {
-        try {
-            closeConnections()
-            startTransferService()
-            _transferState.update { it.copy(status = TransferStatus.CONNECTING, error = null) }
+    fun startServerAndReceiveFiles() {
+        transferScope.launch {
+            try {
+                closeConnections()
+                startTransferService()
+                _transferState.update { it.copy(status = TransferStatus.CONNECTING, error = null) }
 
             serverSocket = ServerSocket().apply {
                 reuseAddress = true
@@ -124,10 +132,11 @@ class TransferManager @Inject constructor(
             closeConnections()
             stopTransferService()
         }
+        }
     }
 
-    suspend fun connectAndSendFiles(rawIpAddress: String, files: List<FileItem>) =
-        withContext(Dispatchers.IO) {
+    fun connectAndSendFiles(rawIpAddress: String, files: List<FileItem>) {
+        transferScope.launch {
             try {
                 closeConnections()
                 startTransferService()
@@ -231,6 +240,7 @@ class TransferManager @Inject constructor(
                 stopTransferService()
             }
         }
+    }
 
     private fun closeConnections() {
         try {
